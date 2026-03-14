@@ -1,0 +1,119 @@
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { formatJST, formatCurrent } from '@/lib/format'
+import Link from 'next/link'
+
+export const revalidate = 30
+
+export default async function DevicesPage() {
+  const supabase = await createSupabaseServerClient()
+
+  const { data: devices } = await supabase
+    .from('devices')
+    .select('*')
+    .eq('is_active', true)
+    .order('machine_name', { ascending: true })
+
+  // Get latest telemetry for each device
+  const deviceIds = devices?.map((d) => d.enocean_device_id) ?? []
+  const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+
+  // Fetch latest telemetry per device
+  const latestByDevice = new Map<
+    string,
+    {
+      observed_at: string
+      phase_l1_current_a: number | null
+      phase_l2_current_a: number | null
+      phase_l3_current_a: number | null
+    }
+  >()
+
+  if (deviceIds.length > 0) {
+    const { data: telemetry } = await supabase
+      .from('telemetry_events')
+      .select('device_id, observed_at, phase_l1_current_a, phase_l2_current_a, phase_l3_current_a')
+      .in('device_id', deviceIds)
+      .order('observed_at', { ascending: false })
+      .limit(deviceIds.length * 2) // rough limit
+
+    for (const t of telemetry ?? []) {
+      if (!latestByDevice.has(t.device_id)) {
+        latestByDevice.set(t.device_id, t)
+      }
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-gray-800 mb-6">設備一覧</h2>
+
+      {!devices || devices.length === 0 ? (
+        <div className="bg-white rounded-xl border border-[var(--color-border)] p-8 text-center text-gray-500">
+          登録済み設備がありません
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-border)] bg-gray-50">
+                <th className="text-left px-4 py-3 font-medium text-gray-600">設備名</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">設備ID</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">L1</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">L2</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">L3</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">最終受信</th>
+                <th className="text-center px-4 py-3 font-medium text-gray-600">状態</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.map((device) => {
+                const latest = latestByDevice.get(device.enocean_device_id)
+                const isOnline = latest && latest.observed_at >= tenMinAgo
+
+                return (
+                  <tr
+                    key={device.id}
+                    className="border-b border-[var(--color-border)] last:border-0 hover:bg-gray-50"
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/devices/${device.id}`}
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        {device.machine_name ?? device.enocean_device_id}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">
+                      {device.machine_id ?? '---'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {formatCurrent(latest?.phase_l1_current_a)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {formatCurrent(latest?.phase_l2_current_a)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {formatCurrent(latest?.phase_l3_current_a)}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {latest ? formatJST(latest.observed_at) : '---'}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {latest == null ? (
+                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-gray-300" title="データ未受信" />
+                      ) : isOnline ? (
+                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500" title="通信中" />
+                      ) : (
+                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" title="通信断" />
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}

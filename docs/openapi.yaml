@@ -1,0 +1,399 @@
+openapi: 3.1.0
+info:
+  title: EnOcean Telemetry Ingestion API
+  version: 1.0.0
+  summary: API for ingesting EnOcean current telemetry into Supabase
+  description: >-
+    USB 400J を接続した受信PCが、CWD-3-1 由来の電流データを HTTPS で送信するための API 仕様。
+    実装先は Supabase Edge Functions を想定する。
+servers:
+  - url: https://{project-ref}.supabase.co/functions/v1
+    variables:
+      project-ref:
+        default: your-project-ref
+security:
+  - bearerAuth: []
+tags:
+  - name: ingest
+    description: Telemetry ingestion endpoints
+  - name: gateway
+    description: Gateway health and control endpoints
+paths:
+  /telemetry/ingest:
+    post:
+      tags: [ingest]
+      operationId: ingestTelemetryBatch
+      summary: Ingest one or more telemetry samples
+      description: >-
+        受信PCから送られる電流データを受け取り、冪等性を担保しつつ保存する。
+        同一 eventId の再送は重複登録せず成功として扱う。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestTelemetryRequest'
+            examples:
+              example1:
+                value:
+                  gatewayId: gw-tokyo-001
+                  sentAt: '2026-03-15T09:30:05Z'
+                  samples:
+                    - eventId: 6c92aa6d5dba3f4bb4ddf0d7a92b1d39
+                      deviceId: 01-02-03-04
+                      machineId: MC-001
+                      observedAt: '2026-03-15T09:30:00Z'
+                      receivedAt: '2026-03-15T09:30:03Z'
+                      phaseL1CurrentA: 12.4
+                      phaseL2CurrentA: 12.1
+                      phaseL3CurrentA: 11.9
+                      ctModelL1: CTT-CLS-WLS-100A
+                      ctModelL2: CTT-CLS-WLS-100A
+                      ctModelL3: CTT-CLS-WLS-100A
+                      rawPayloadHex: deadbeef01
+                      parserVersion: 1.0.0
+                      source: enocean-usb400j
+      responses:
+        '200':
+          description: Accepted and processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestTelemetryResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Semantic conflict in payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /gateway/heartbeat:
+    post:
+      tags: [gateway]
+      operationId: postGatewayHeartbeat
+      summary: Send gateway heartbeat
+      description: >-
+        受信PCの健全性を記録する。画面上の通信状態表示に使う。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatewayHeartbeatRequest'
+      responses:
+        '200':
+          description: Heartbeat accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayHeartbeatResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /devices/unknown:
+    get:
+      tags: [gateway]
+      operationId: listUnknownDevices
+      summary: List unknown or unbound devices
+      description: >-
+        フロントエンドまたは管理ツールが未登録デバイスを確認するための一覧 API。
+        実装は RLS もしくはサーバサイド権限で制御する。
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of unknown devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UnknownDevice'
+                  count:
+                    type: integer
+                    minimum: 0
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque gateway token
+  schemas:
+    IngestTelemetryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - gatewayId
+        - sentAt
+        - samples
+      properties:
+        gatewayId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        sentAt:
+          type: string
+          format: date-time
+        samples:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/TelemetrySample'
+    TelemetrySample:
+      type: object
+      additionalProperties: false
+      required:
+        - eventId
+        - deviceId
+        - observedAt
+        - receivedAt
+        - rawPayloadHex
+        - parserVersion
+        - source
+      properties:
+        eventId:
+          type: string
+          minLength: 16
+          maxLength: 128
+        deviceId:
+          type: string
+          minLength: 1
+          maxLength: 64
+        machineId:
+          type: string
+          minLength: 1
+          maxLength: 64
+          nullable: true
+        observedAt:
+          type: string
+          format: date-time
+        receivedAt:
+          type: string
+          format: date-time
+        phaseL1CurrentA:
+          type: number
+          minimum: 0
+          nullable: true
+        phaseL2CurrentA:
+          type: number
+          minimum: 0
+          nullable: true
+        phaseL3CurrentA:
+          type: number
+          minimum: 0
+          nullable: true
+        ctModelL1:
+          type: string
+          nullable: true
+        ctModelL2:
+          type: string
+          nullable: true
+        ctModelL3:
+          type: string
+          nullable: true
+        rawPayloadHex:
+          type: string
+          pattern: '^[0-9a-fA-F]+$'
+        rssi:
+          type: integer
+          minimum: -150
+          maximum: 20
+          nullable: true
+        repeaterCount:
+          type: integer
+          minimum: 0
+          maximum: 3
+          nullable: true
+        parserVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        source:
+          type: string
+          enum: [enocean-usb400j]
+        meta:
+          type: object
+          additionalProperties: true
+          nullable: true
+    IngestTelemetryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - gatewayId
+        - accepted
+        - inserted
+        - duplicated
+        - rejected
+        - processedAt
+      properties:
+        gatewayId:
+          type: string
+        accepted:
+          type: integer
+          minimum: 0
+        inserted:
+          type: integer
+          minimum: 0
+        duplicated:
+          type: integer
+          minimum: 0
+        rejected:
+          type: integer
+          minimum: 0
+        processedAt:
+          type: string
+          format: date-time
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngestResult'
+    IngestResult:
+      type: object
+      additionalProperties: false
+      required:
+        - eventId
+        - status
+      properties:
+        eventId:
+          type: string
+        status:
+          type: string
+          enum: [inserted, duplicated, rejected]
+        reason:
+          type: string
+          nullable: true
+    GatewayHeartbeatRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - gatewayId
+        - sentAt
+        - status
+        - spoolDepth
+      properties:
+        gatewayId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        sentAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [online, degraded, offline]
+        spoolDepth:
+          type: integer
+          minimum: 0
+        serialPort:
+          type: string
+          nullable: true
+        appVersion:
+          type: string
+          nullable: true
+        uptimeSec:
+          type: integer
+          minimum: 0
+          nullable: true
+        lastReceivedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastSentSuccessAt:
+          type: string
+          format: date-time
+          nullable: true
+        meta:
+          type: object
+          additionalProperties: true
+          nullable: true
+    GatewayHeartbeatResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - gatewayId
+        - accepted
+        - processedAt
+      properties:
+        gatewayId:
+          type: string
+        accepted:
+          type: boolean
+        processedAt:
+          type: string
+          format: date-time
+    UnknownDevice:
+      type: object
+      additionalProperties: false
+      required:
+        - deviceId
+        - firstSeenAt
+        - lastSeenAt
+        - seenCount
+      properties:
+        deviceId:
+          type: string
+        gatewayId:
+          type: string
+          nullable: true
+        firstSeenAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        seenCount:
+          type: integer
+          minimum: 1
+        lastRawPayloadHex:
+          type: string
+          nullable: true
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+          nullable: true
