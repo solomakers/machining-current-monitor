@@ -1,32 +1,21 @@
 import { EventEmitter } from 'node:events'
+import { createReadStream, existsSync } from 'node:fs'
+import { execSync } from 'node:child_process'
+import type { ReadStream } from 'node:fs'
 import type { SerialConfig } from '@mcm/config'
 import type { Logger } from 'pino'
 
 const RECONNECT_INTERVAL_MS = 5000
 
-// serialport の型定義 (動的 import 用)
-interface SerialPortLike {
-  on(event: string, cb: (...args: unknown[]) => void): void
-  open(cb: (err: Error | null) => void): void
-  close(cb: () => void): void
-  isOpen: boolean
-}
-
-interface SerialPortStatic {
-  new (options: Record<string, unknown>): SerialPortLike
-  list(): Promise<{ path: string }[]>
-}
-
 /**
  * USB 400J 仮想COMポートへの接続を管理する。
- * serialport パッケージは動的にロードし、未インストール時はエラーをログ出力する。
- * 切断時は自動再接続する。
+ * Linux では stty + fs.createReadStream で直接デバイスファイルを読む。
+ * serialport ライブラリ不要。切断時は自動再接続する。
  */
 export class ManagedSerialPort extends EventEmitter {
-  private port: SerialPortLike | null = null
+  private stream: ReadStream | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private closing = false
-  private SerialPortClass: SerialPortStatic | null = null
 
   constructor(
     private readonly config: SerialConfig,
@@ -36,73 +25,74 @@ export class ManagedSerialPort extends EventEmitter {
   }
 
   async open(): Promise<void> {
-    try {
-      // TypeScript の静的解析を回避するため文字列変数経由で動的 import
-      const moduleName = 'serialport'
-      const mod = await import(/* webpackIgnore: true */ moduleName)
-      this.SerialPortClass = mod.SerialPort as unknown as SerialPortStatic
-    } catch {
-      this.logger.error(
-        'serialport パッケージが見つかりません。Raspberry Pi にデプロイ時にインストールしてください。',
-      )
-      return
-    }
-
-    const ports = await this.SerialPortClass.list()
-    this.logger.info(
-      { availablePorts: ports.map((p: { path: string }) => p.path) },
-      'Available serial ports',
-    )
-
     this.connect()
   }
 
   private connect(): void {
-    if (this.closing || !this.SerialPortClass) return
+    if (this.closing) return
 
-    this.logger.info(
-      { port: this.config.port, baudRate: this.config.baudRate },
-      'Opening serial port',
-    )
+    const devicePath = this.config.port
 
-    this.port = new this.SerialPortClass({
-      path: this.config.port,
-      baudRate: this.config.baudRate,
-      dataBits: this.config.dataBits,
-      stopBits: this.config.stopBits,
-      parity: this.config.parity,
-      autoOpen: false,
-    })
-
-    this.port.on('open', () => {
-      this.logger.info('Serial port opened')
-      this.emit('open')
-    })
-
-    this.port.on('data', (chunk: unknown) => {
-      this.emit('data', chunk)
-    })
-
-    this.port.on('error', (err: unknown) => {
-      this.logger.error({ err }, 'Serial port error')
-      this.emit('error', err)
+    // デバイスファイルの存在確認
+    if (!existsSync(devicePath)) {
+      this.logger.warn({ port: devicePath }, 'Serial device not found, retrying...')
       this.scheduleReconnect()
-    })
+      return
+    }
 
-    this.port.on('close', () => {
-      this.logger.warn('Serial port closed')
-      this.emit('close')
-      if (!this.closing) {
-        this.scheduleReconnect()
-      }
-    })
+    // stty でシリアルポートを設定
+    try {
+      const sttyCmd = `stty -F ${devicePath} ${this.config.baudRate} raw -echo -echoe -echok -echoctl -echoke cs${this.config.dataBits} -cstopb -parenb -crtscts -ixon -ixoff -hupcl cread clocal`
+      this.logger.info({ port: devicePath, baudRate: this.config.baudRate, cmd: sttyCmd }, 'Configuring serial port with stty')
+      execSync(sttyCmd, { stdio: 'pipe' })
+    } catch (err) {
+      this.logger.error({ err }, 'Failed to configure serial port with stty')
+      this.scheduleReconnect()
+      return
+    }
 
-    this.port.open((err: Error | null) => {
-      if (err) {
-        this.logger.error({ err }, 'Failed to open serial port')
+    // createReadStream でデバイスファイルを読む
+    try {
+      this.stream = createReadStream(devicePath, {
+        highWaterMark: 1024,
+      })
+
+      this.stream.on('data', (chunk: string | Buffer) => {
+        this.emit('data', Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+      })
+
+      this.stream.on('error', (err: Error) => {
+        this.logger.error({ err: err.message }, 'Serial stream error')
+        this.cleanup()
         this.scheduleReconnect()
+      })
+
+      this.stream.on('close', () => {
+        this.logger.warn('Serial stream closed')
+        this.emit('close')
+        if (!this.closing) {
+          this.cleanup()
+          this.scheduleReconnect()
+        }
+      })
+
+      this.logger.info({ port: devicePath, baudRate: this.config.baudRate }, 'Serial port opened (stty + ReadStream)')
+      this.emit('open')
+    } catch (err) {
+      this.logger.error({ err }, 'Failed to open serial stream')
+      this.scheduleReconnect()
+    }
+  }
+
+  private cleanup(): void {
+    if (this.stream) {
+      try {
+        this.stream.destroy()
+      } catch {
+        // ignore
       }
-    })
+      this.stream = null
+    }
   }
 
   private scheduleReconnect(): void {
@@ -125,12 +115,6 @@ export class ManagedSerialPort extends EventEmitter {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
     }
-    return new Promise<void>((resolve) => {
-      if (this.port?.isOpen) {
-        this.port.close(() => resolve())
-      } else {
-        resolve()
-      }
-    })
+    this.cleanup()
   }
 }
