@@ -30,15 +30,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
-      <div className="w-full max-w-sm">
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-8">
-          <h1 className="text-xl font-bold text-gray-800 text-center mb-2">電流監視システム</h1>
-          <p className="text-sm text-gray-500 text-center mb-6">ログイン</p>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Ambient glow */}
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20 blur-[120px] pointer-events-none"
+        style={{ background: 'radial-gradient(circle, var(--color-primary) 0%, transparent 70%)' }}
+      />
+
+      <div className="w-full max-w-sm relative z-10">
+        <div className="card-hmi p-8">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-lg shadow-[var(--color-primary-glow)]">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#080c12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </div>
+          </div>
+
+          <h1 className="text-lg font-semibold text-[var(--color-text)] text-center mb-1">
+            電流監視システム
+          </h1>
+          <p className="text-xs text-[var(--color-text-dim)] text-center mb-8 font-mono tracking-wider">
+            CURRENT MONITORING SYSTEM
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-[11px] uppercase tracking-wider text-[var(--color-text-dim)] mb-1.5 font-medium">
                 メールアドレス
               </label>
               <input
@@ -47,11 +66,11 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input-hmi w-full"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-[11px] uppercase tracking-wider text-[var(--color-text-dim)] mb-1.5 font-medium">
                 パスワード
               </label>
               <input
@@ -60,16 +79,18 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input-hmi w-full"
               />
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <p className="text-xs text-[var(--color-danger)]">{error}</p>
+            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="btn-primary w-full py-3"
             >
               {loading ? 'ログイン中...' : 'ログイン'}
             </button>

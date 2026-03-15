@@ -39,9 +39,9 @@ export default function UnknownDevicesPage() {
   if (loading) {
     return (
       <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-6">未登録デバイス</h2>
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-8 text-center text-gray-500">
-          読み込み中...
+        <h2 className="text-lg font-semibold text-[var(--color-text)] mb-6">未登録デバイス</h2>
+        <div className="card-hmi p-8 text-center text-[var(--color-text-dim)] font-mono text-sm animate-pulse">
+          LOADING...
         </div>
       </div>
     )
@@ -49,40 +49,41 @@ export default function UnknownDevicesPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-800 mb-6">未登録デバイス</h2>
+      <h2 className="text-lg font-semibold text-[var(--color-text)] mb-6">未登録デバイス</h2>
 
       {unknowns.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-8 text-center text-gray-500">
+        <div className="card-hmi p-8 text-center text-[var(--color-text-dim)] font-mono text-sm">
           未登録デバイスはありません
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="card-hmi overflow-hidden">
+          <table className="w-full text-sm table-hmi">
             <thead>
-              <tr className="border-b border-[var(--color-border)] bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">デバイスID</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">ゲートウェイ</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">初回検知</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">最終検知</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">検知回数</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600">操作</th>
+              <tr>
+                <th className="text-left px-4 py-3">デバイスID</th>
+                <th className="text-left px-4 py-3">ゲートウェイ</th>
+                <th className="text-left px-4 py-3">初回検知</th>
+                <th className="text-left px-4 py-3">最終検知</th>
+                <th className="text-right px-4 py-3">検知回数</th>
+                <th className="text-center px-4 py-3">操作</th>
               </tr>
             </thead>
             <tbody>
               {unknowns.map((d) => (
-                <tr
-                  key={d.id}
-                  className="border-b border-[var(--color-border)] last:border-0"
-                >
-                  <td className="px-4 py-3 font-mono text-xs">{d.device_id}</td>
-                  <td className="px-4 py-3 text-gray-500">{d.gateway_id ?? '---'}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
+                <tr key={d.id}>
+                  <td className="px-4 py-3 font-[JetBrains_Mono,monospace] text-xs text-[var(--color-primary)]">
+                    {d.device_id}
+                  </td>
+                  <td className="px-4 py-3 text-[var(--color-text-muted)]">{d.gateway_id ?? '---'}</td>
+                  <td className="px-4 py-3 text-[var(--color-text-muted)] text-xs font-mono">
                     {formatJST(d.first_seen_at)}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
+                  <td className="px-4 py-3 text-[var(--color-text-muted)] text-xs font-mono">
                     {formatJST(d.last_seen_at)}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono">{d.seen_count}</td>
+                  <td className="px-4 py-3 text-right font-[JetBrains_Mono,monospace] text-[var(--color-text)]">
+                    {d.seen_count}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <ApproveDeviceForm
                       deviceId={d.device_id}

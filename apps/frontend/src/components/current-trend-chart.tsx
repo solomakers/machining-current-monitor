@@ -29,8 +29,8 @@ export function CurrentTrendChart({ data }: { data: DataPoint[] }) {
 
   if (chartData.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
-        データがありません
+      <div className="h-64 flex items-center justify-center text-[var(--color-text-dim)] text-sm font-mono">
+        NO DATA
       </div>
     )
   }
@@ -38,20 +38,37 @@ export function CurrentTrendChart({ data }: { data: DataPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="time" tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} unit=" A" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+        <XAxis
+          dataKey="time"
+          tick={{ fontSize: 11, fill: 'var(--color-text-dim)', fontFamily: 'JetBrains Mono, monospace' }}
+          stroke="var(--color-border-accent)"
+        />
+        <YAxis
+          tick={{ fontSize: 11, fill: 'var(--color-text-dim)', fontFamily: 'JetBrains Mono, monospace' }}
+          unit=" A"
+          stroke="var(--color-border-accent)"
+        />
         <Tooltip
-          contentStyle={{ fontSize: 13 }}
+          contentStyle={{
+            fontSize: 13,
+            background: 'var(--color-surface-raised)',
+            border: '1px solid var(--color-border-accent)',
+            borderRadius: 8,
+            color: 'var(--color-text)',
+            fontFamily: 'JetBrains Mono, monospace',
+          }}
           formatter={(value: unknown) => {
             const n = typeof value === 'number' ? value : null
             return n != null ? `${n.toFixed(1)} A` : '---'
           }}
         />
-        <Legend />
-        <Line type="monotone" dataKey="L1" stroke="#2563eb" dot={false} strokeWidth={2} />
-        <Line type="monotone" dataKey="L2" stroke="#16a34a" dot={false} strokeWidth={2} />
-        <Line type="monotone" dataKey="L3" stroke="#f59e0b" dot={false} strokeWidth={2} />
+        <Legend
+          wrapperStyle={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace' }}
+        />
+        <Line type="monotone" dataKey="L1" stroke="var(--color-line-l1)" dot={false} strokeWidth={2} />
+        <Line type="monotone" dataKey="L2" stroke="var(--color-line-l2)" dot={false} strokeWidth={2} />
+        <Line type="monotone" dataKey="L3" stroke="var(--color-line-l3)" dot={false} strokeWidth={2} />
       </LineChart>
     </ResponsiveContainer>
   )

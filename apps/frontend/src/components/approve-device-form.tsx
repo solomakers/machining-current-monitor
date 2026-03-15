@@ -26,7 +26,7 @@ export function ApproveDeviceForm({ deviceId, gatewayId, onApproved }: Props) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        className="btn-primary text-xs py-1 px-3"
       >
         登録
       </button>
@@ -66,55 +66,55 @@ export function ApproveDeviceForm({ deviceId, gatewayId, onApproved }: Props) {
   }
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-1">
+    <div className="card-hmi p-3 mt-1">
       <form onSubmit={handleSubmit} className="space-y-2">
         <div>
-          <label className="text-xs text-gray-600 block mb-0.5">設備名 *</label>
+          <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1">設備名 *</label>
           <input
             type="text"
             value={machineName}
             onChange={(e) => setMachineName(e.target.value)}
             placeholder="例: MC-001 横型マシニングセンタ"
-            className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+            className="input-hmi w-full text-sm"
             autoFocus
           />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-gray-600 block mb-0.5">設備ID</label>
+            <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1">設備ID</label>
             <input
               type="text"
               value={machineId}
               onChange={(e) => setMachineId(e.target.value)}
               placeholder="例: mc-001"
-              className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+              className="input-hmi w-full text-sm"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-600 block mb-0.5">サイトコード</label>
+            <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1">サイトコード</label>
             <input
               type="text"
               value={siteCode}
               onChange={(e) => setSiteCode(e.target.value)}
               placeholder="例: tokyo-factory"
-              className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+              className="input-hmi w-full text-sm"
             />
           </div>
         </div>
-        <p className="text-xs text-gray-400">ゲートウェイ: {gatewayId ?? '不明'}</p>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        <p className="text-[10px] text-[var(--color-text-dim)] font-mono">GW: {gatewayId ?? '不明'}</p>
+        {error && <p className="text-xs text-[var(--color-danger)]">{error}</p>}
         <div className="flex gap-2">
           <button
             type="submit"
             disabled={submitting}
-            className="text-xs px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="btn-primary text-xs py-1"
           >
             {submitting ? '登録中...' : '設備を登録'}
           </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="text-xs px-3 py-1 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300"
+            className="btn-ghost text-xs py-1"
           >
             キャンセル
           </button>

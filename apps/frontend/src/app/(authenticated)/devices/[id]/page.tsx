@@ -74,78 +74,80 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
   return (
     <div>
       <div className="mb-6">
-        <Link href="/devices" className="text-sm text-blue-600 hover:underline">
+        <Link href="/devices" className="text-sm text-[var(--color-primary-dim)] hover:text-[var(--color-primary)] transition-colors font-mono">
           ← 設備一覧
         </Link>
       </div>
 
       <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-xl font-bold text-gray-800">
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">
           {device.machine_name ?? device.enocean_device_id}
         </h2>
         {latest == null ? (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-            データ未受信
-          </span>
+          <span className="badge badge-neutral">データ未受信</span>
         ) : isOnline ? (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-            通信中
-          </span>
+          <span className="badge badge-success">通信中</span>
         ) : (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">通信断</span>
+          <span className="badge badge-danger">通信断</span>
         )}
-        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+        <span className="badge badge-neutral font-mono">
           {powerSettings.phaseType === '3phase' ? '三相' : '単相'} {powerSettings.voltageV}V
         </span>
       </div>
 
       {/* Current & Power values */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs text-gray-500 mb-1">L1 電流</p>
-          <p className="text-xl font-bold text-blue-600 font-mono">
+        <div className="card-hmi p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] mb-1.5">L1 電流</p>
+          <p className="text-xl font-bold font-[JetBrains_Mono,monospace] text-[var(--color-line-l1)] glow-cyan">
             {formatCurrent(latest?.phase_l1_current_a)}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs text-gray-500 mb-1">L2 電流</p>
-          <p className="text-xl font-bold text-green-600 font-mono">
+        <div className="card-hmi p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] mb-1.5">L2 電流</p>
+          <p className="text-xl font-bold font-[JetBrains_Mono,monospace] text-[var(--color-line-l2)] glow-green">
             {formatCurrent(latest?.phase_l2_current_a)}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs text-gray-500 mb-1">L3 電流</p>
-          <p className="text-xl font-bold text-amber-500 font-mono">
+        <div className="card-hmi p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] mb-1.5">L3 電流</p>
+          <p className="text-xl font-bold font-[JetBrains_Mono,monospace] text-[var(--color-line-l3)] glow-amber">
             {formatCurrent(latest?.phase_l3_current_a)}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs text-gray-500 mb-1">推定電力</p>
-          <p className="text-xl font-bold text-purple-600 font-mono">
+        <div className="card-hmi p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] mb-1.5">推定電力</p>
+          <p className="text-xl font-bold font-[JetBrains_Mono,monospace] text-[var(--color-power)] glow-purple">
             {formatPower(totalPowerKw)}
           </p>
-          <p className="text-[10px] text-gray-400 mt-0.5">
+          <p className="text-[10px] text-[var(--color-text-dim)] mt-0.5 font-mono">
             cosφ={powerSettings.powerFactor}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs text-gray-500 mb-1">相アンバランス</p>
-          <p className="text-xl font-bold text-gray-800 font-mono">{imbalance ?? '---'}</p>
+        <div className="card-hmi p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] mb-1.5">相アンバランス</p>
+          <p className="text-xl font-bold font-[JetBrains_Mono,monospace] text-[var(--color-text)]">
+            {imbalance ?? '---'}
+          </p>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="bg-white rounded-xl border border-[var(--color-border)] p-5 mb-6">
+      <div className="card-hmi p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-gray-700">電流推移</h3>
+          <h3 className="text-[11px] uppercase tracking-wider text-[var(--color-text-dim)] font-medium">
+            電流推移
+          </h3>
           <CsvExportButton deviceId={device.enocean_device_id} deviceName={device.machine_name ?? device.enocean_device_id} />
         </div>
         <DeviceDetailChart deviceId={device.enocean_device_id} initialData={chartRaw ?? []} />
       </div>
 
       {/* Power settings */}
-      <div className="bg-white rounded-xl border border-[var(--color-border)] p-5 mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">電力設定</h3>
+      <div className="card-hmi p-5 mb-6">
+        <h3 className="text-[11px] uppercase tracking-wider text-[var(--color-text-dim)] font-medium mb-4">
+          電力設定
+        </h3>
         <PowerSettingsPanel
           deviceId={device.id}
           phaseType={powerSettings.phaseType}
@@ -155,34 +157,36 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Device info */}
-      <div className="bg-white rounded-xl border border-[var(--color-border)] p-5">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">デバイス情報</h3>
+      <div className="card-hmi p-5">
+        <h3 className="text-[11px] uppercase tracking-wider text-[var(--color-text-dim)] font-medium mb-4">
+          デバイス情報
+        </h3>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-          <div className="flex justify-between py-1 border-b border-gray-100">
-            <dt className="text-gray-500">設備ID</dt>
-            <dd className="text-gray-800 font-mono">{device.machine_id ?? '---'}</dd>
+          <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
+            <dt className="text-[var(--color-text-muted)]">設備ID</dt>
+            <dd className="text-[var(--color-text)] font-[JetBrains_Mono,monospace] text-xs">{device.machine_id ?? '---'}</dd>
           </div>
-          <div className="flex justify-between py-1 border-b border-gray-100">
-            <dt className="text-gray-500">EnOcean ID</dt>
-            <dd className="text-gray-800 font-mono">{device.enocean_device_id}</dd>
+          <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
+            <dt className="text-[var(--color-text-muted)]">EnOcean ID</dt>
+            <dd className="text-[var(--color-text)] font-[JetBrains_Mono,monospace] text-xs">{device.enocean_device_id}</dd>
           </div>
-          <div className="flex justify-between py-1 border-b border-gray-100">
-            <dt className="text-gray-500">サイトコード</dt>
-            <dd className="text-gray-800">{device.site_code ?? '---'}</dd>
+          <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
+            <dt className="text-[var(--color-text-muted)]">サイトコード</dt>
+            <dd className="text-[var(--color-text)]">{device.site_code ?? '---'}</dd>
           </div>
-          <div className="flex justify-between py-1 border-b border-gray-100">
-            <dt className="text-gray-500">最終受信</dt>
-            <dd className="text-gray-800">
+          <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
+            <dt className="text-[var(--color-text-muted)]">最終受信</dt>
+            <dd className="text-[var(--color-text)] font-mono text-xs">
               {latest ? `${formatJST(latest.observed_at)} (${formatRelative(latest.observed_at)})` : '---'}
             </dd>
           </div>
-          <div className="flex justify-between py-1 border-b border-gray-100">
-            <dt className="text-gray-500">ゲートウェイ</dt>
-            <dd className="text-gray-800 font-mono">{latest?.gateway_id ?? '---'}</dd>
+          <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
+            <dt className="text-[var(--color-text-muted)]">ゲートウェイ</dt>
+            <dd className="text-[var(--color-text)] font-[JetBrains_Mono,monospace] text-xs">{latest?.gateway_id ?? '---'}</dd>
           </div>
-          <div className="flex justify-between py-1 border-b border-gray-100">
-            <dt className="text-gray-500">設置日</dt>
-            <dd className="text-gray-800">
+          <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
+            <dt className="text-[var(--color-text-muted)]">設置日</dt>
+            <dd className="text-[var(--color-text)]">
               {device.installed_at ? formatJST(device.installed_at, 'yyyy/MM/dd') : '---'}
             </dd>
           </div>

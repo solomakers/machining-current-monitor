@@ -6,18 +6,24 @@ interface StatCardProps {
 }
 
 const colorMap = {
-  default: 'text-gray-900',
-  success: 'text-green-600',
-  warning: 'text-amber-500',
-  danger: 'text-red-600',
+  default: 'text-[var(--color-text)]',
+  success: 'text-[var(--color-success)] glow-green',
+  warning: 'text-[var(--color-warning)] glow-amber',
+  danger: 'text-[var(--color-danger)] glow-red',
 }
 
 export function StatCard({ label, value, sub, color = 'default' }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-[var(--color-border)] p-5">
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${colorMap[color]}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+    <div className="card-hmi p-5">
+      <p className="text-[11px] uppercase tracking-wider text-[var(--color-text-dim)] mb-2 font-medium">
+        {label}
+      </p>
+      <p className={`text-2xl font-bold font-[JetBrains_Mono,monospace] ${colorMap[color]}`}>
+        {value}
+      </p>
+      {sub && (
+        <p className="text-[11px] text-[var(--color-text-dim)] mt-1 font-mono">{sub}</p>
+      )}
     </div>
   )
 }

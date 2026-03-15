@@ -34,60 +34,57 @@ export default async function GatewaysPage() {
     }
   }
 
-  const statusColors: Record<string, string> = {
-    online: 'bg-green-100 text-green-700',
-    degraded: 'bg-amber-100 text-amber-700',
-    offline: 'bg-red-100 text-red-700',
+  const statusBadge: Record<string, string> = {
+    online: 'badge-success',
+    degraded: 'badge-warning',
+    offline: 'badge-danger',
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-800">ゲートウェイ状態</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">ゲートウェイ状態</h2>
         <ConnectionTestButton />
       </div>
 
       {!gateways || gateways.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-8 text-center text-gray-500">
+        <div className="card-hmi p-8 text-center text-[var(--color-text-dim)] font-mono text-sm">
           登録済みゲートウェイがありません
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {gateways.map((gw) => {
             const hb = latestHeartbeats.get(gw.name)
-            const statusClass = statusColors[gw.status] ?? statusColors.offline
+            const badgeClass = statusBadge[gw.status] ?? statusBadge.offline
 
             return (
-              <div
-                key={gw.id}
-                className="bg-white rounded-xl border border-[var(--color-border)] p-5"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-gray-800">{gw.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusClass}`}>
+              <div key={gw.id} className="card-hmi p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium text-[var(--color-text)]">{gw.name}</h3>
+                  <span className={`badge ${badgeClass}`}>
                     {gw.status}
                   </span>
                 </div>
-                <dl className="text-sm space-y-1.5">
+                <dl className="text-sm space-y-2.5">
                   <div className="flex justify-between">
-                    <dt className="text-gray-500">サイト</dt>
-                    <dd className="text-gray-800">{gw.site_code ?? '---'}</dd>
+                    <dt className="text-[var(--color-text-muted)]">サイト</dt>
+                    <dd className="text-[var(--color-text)]">{gw.site_code ?? '---'}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-500">最終通信</dt>
-                    <dd className="text-gray-800">
+                    <dt className="text-[var(--color-text-muted)]">最終通信</dt>
+                    <dd className="text-[var(--color-text)] font-mono text-xs">
                       {gw.last_seen_at
                         ? `${formatJST(gw.last_seen_at, 'MM/dd HH:mm:ss')} (${formatRelative(gw.last_seen_at)})`
                         : '---'}
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-500">スプール件数</dt>
-                    <dd className="text-gray-800 font-mono">{hb?.spool_depth ?? '---'}</dd>
+                    <dt className="text-[var(--color-text-muted)]">スプール件数</dt>
+                    <dd className="text-[var(--color-text)] font-[JetBrains_Mono,monospace]">{hb?.spool_depth ?? '---'}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-500">稼働時間</dt>
-                    <dd className="text-gray-800">
+                    <dt className="text-[var(--color-text-muted)]">稼働時間</dt>
+                    <dd className="text-[var(--color-text)] font-[JetBrains_Mono,monospace]">
                       {hb?.uptime_sec != null
                         ? `${Math.floor(hb.uptime_sec / 3600)}h ${Math.floor((hb.uptime_sec % 3600) / 60)}m`
                         : '---'}

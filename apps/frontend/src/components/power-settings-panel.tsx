@@ -62,22 +62,22 @@ export function PowerSettingsPanel({ deviceId, phaseType, voltageV, powerFactor 
   return (
     <div className="flex flex-wrap gap-4 items-end">
       <div>
-        <label className="text-xs text-gray-600 block mb-1">交流種別</label>
+        <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">交流種別</label>
         <select
           value={phase}
           onChange={(e) => setPhase(e.target.value as '3phase' | '1phase')}
-          className="text-sm border border-gray-300 rounded px-2 py-1.5"
+          className="input-hmi text-sm"
         >
           <option value="3phase">三相交流</option>
           <option value="1phase">単相交流</option>
         </select>
       </div>
       <div>
-        <label className="text-xs text-gray-600 block mb-1">線間電圧 (V)</label>
+        <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">線間電圧 (V)</label>
         <select
           value={voltage}
           onChange={(e) => setVoltage(e.target.value)}
-          className="text-sm border border-gray-300 rounded px-2 py-1.5"
+          className="input-hmi text-sm"
         >
           <option value="100">100V</option>
           <option value="200">200V</option>
@@ -86,7 +86,7 @@ export function PowerSettingsPanel({ deviceId, phaseType, voltageV, powerFactor 
         </select>
       </div>
       <div>
-        <label className="text-xs text-gray-600 block mb-1">力率 (cosφ)</label>
+        <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">力率 (cosφ)</label>
         <input
           type="number"
           step="0.01"
@@ -94,24 +94,24 @@ export function PowerSettingsPanel({ deviceId, phaseType, voltageV, powerFactor 
           max="1.00"
           value={pf}
           onChange={(e) => setPf(e.target.value)}
-          className="text-sm border border-gray-300 rounded px-2 py-1.5 w-20 font-mono"
+          className="input-hmi text-sm w-20 font-[JetBrains_Mono,monospace]"
         />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
           disabled={saving || !hasChanges}
-          className="text-sm px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="btn-primary text-sm"
         >
           {saving ? '保存中...' : '保存'}
         </button>
-        {saved && <span className="text-xs text-green-600">保存しました</span>}
-        {error && <span className="text-xs text-red-600">{error}</span>}
+        {saved && <span className="text-xs text-[var(--color-success)]">保存しました</span>}
+        {error && <span className="text-xs text-[var(--color-danger)]">{error}</span>}
       </div>
-      <div className="w-full text-xs text-gray-400 mt-1">
+      <div className="w-full text-xs text-[var(--color-text-dim)] mt-1 font-[JetBrains_Mono,monospace]">
         {phase === '3phase'
-          ? `計算式: P = √3 × ${voltage}V × I_avg × ${pf}`
-          : `計算式: P = ${voltage}V × I × ${pf}`
+          ? `P = √3 × ${voltage}V × I_avg × ${pf}`
+          : `P = ${voltage}V × I × ${pf}`
         }
       </div>
     </div>

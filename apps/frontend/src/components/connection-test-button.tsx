@@ -60,30 +60,30 @@ export function ConnectionTestButton() {
       <button
         onClick={runTest}
         disabled={status === 'testing'}
-        className="text-xs px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+        className="btn-ghost text-xs"
       >
         {status === 'testing' ? 'テスト中...' : '通信テスト'}
       </button>
 
       {result && (
-        <div className="mt-3 bg-white rounded-lg border border-[var(--color-border)] p-3 text-xs space-y-2">
+        <div className="mt-3 card-hmi p-3 text-xs space-y-2">
           <div className="flex items-center gap-2">
-            <span className={`inline-block w-2 h-2 rounded-full ${result.supabase.ok ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-gray-600">Supabase API</span>
-            <span className="ml-auto font-mono text-gray-500">{result.supabase.latencyMs}ms</span>
+            <span className={`inline-block w-2 h-2 rounded-full ${result.supabase.ok ? 'bg-[var(--color-success)] pulse-live' : 'bg-[var(--color-danger)]'}`} />
+            <span className="text-[var(--color-text-muted)]">Supabase API</span>
+            <span className="ml-auto font-[JetBrains_Mono,monospace] text-[var(--color-text-dim)]">{result.supabase.latencyMs}ms</span>
           </div>
           {result.supabase.error && (
-            <p className="text-red-600 pl-4">{result.supabase.error}</p>
+            <p className="text-[var(--color-danger)] pl-4">{result.supabase.error}</p>
           )}
           <div className="flex items-center gap-2">
-            <span className={`inline-block w-2 h-2 rounded-full ${result.ingest.ok ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-gray-600">Ingest Function</span>
-            <span className="ml-auto font-mono text-gray-500">{result.ingest.latencyMs}ms</span>
+            <span className={`inline-block w-2 h-2 rounded-full ${result.ingest.ok ? 'bg-[var(--color-success)] pulse-live' : 'bg-[var(--color-danger)]'}`} />
+            <span className="text-[var(--color-text-muted)]">Ingest Function</span>
+            <span className="ml-auto font-[JetBrains_Mono,monospace] text-[var(--color-text-dim)]">{result.ingest.latencyMs}ms</span>
           </div>
           {result.ingest.error && (
-            <p className="text-red-600 pl-4">{result.ingest.error}</p>
+            <p className="text-[var(--color-danger)] pl-4">{result.ingest.error}</p>
           )}
-          <p className={`font-medium ${status === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+          <p className={`font-medium ${status === 'success' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}`}>
             {status === 'success' ? '全て正常' : '接続に問題があります'}
           </p>
         </div>

@@ -33,10 +33,10 @@ interface Device {
   enocean_device_id: string
 }
 
-const severityStyle: Record<string, string> = {
-  critical: 'bg-red-100 text-red-700',
-  warning: 'bg-amber-100 text-amber-700',
-  info: 'bg-blue-100 text-blue-700',
+const severityBadge: Record<string, string> = {
+  critical: 'badge-danger',
+  warning: 'badge-warning',
+  info: 'badge-info',
 }
 
 const phaseLabel: Record<string, string> = {
@@ -108,9 +108,9 @@ export default function AlertsPage() {
   if (loading) {
     return (
       <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-6">アラート</h2>
-        <div className="bg-white rounded-xl border border-[var(--color-border)] p-8 text-center text-gray-500">
-          読み込み中...
+        <h2 className="text-lg font-semibold text-[var(--color-text)] mb-6">アラート</h2>
+        <div className="card-hmi p-8 text-center text-[var(--color-text-dim)] font-mono text-sm animate-pulse">
+          LOADING...
         </div>
       </div>
     )
@@ -121,9 +121,9 @@ export default function AlertsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-800">アラート</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">アラート</h2>
         {activeAlerts.length > 0 && (
-          <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium">
+          <span className="badge badge-danger font-[JetBrains_Mono,monospace]">
             {activeAlerts.length} 件のアクティブアラート
           </span>
         )}
@@ -133,67 +133,63 @@ export default function AlertsPage() {
       <div className="flex gap-1 mb-4">
         <button
           onClick={() => setTab('history')}
-          className={`text-sm px-4 py-2 rounded-lg transition-colors ${
-            tab === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          className={`tab-hmi ${tab === 'history' ? 'tab-hmi-active' : 'tab-hmi-inactive'}`}
         >
           アラート履歴
         </button>
         <button
           onClick={() => setTab('rules')}
-          className={`text-sm px-4 py-2 rounded-lg transition-colors ${
-            tab === 'rules' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          className={`tab-hmi ${tab === 'rules' ? 'tab-hmi-active' : 'tab-hmi-inactive'}`}
         >
           アラートルール
         </button>
       </div>
 
       {tab === 'history' ? (
-        <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
+        <div className="card-hmi overflow-hidden">
           {alerts.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">アラート履歴はありません</div>
+            <div className="p-8 text-center text-[var(--color-text-dim)] font-mono text-sm">アラート履歴はありません</div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-hmi">
               <thead>
-                <tr className="border-b border-[var(--color-border)] bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">重要度</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">設備</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">内容</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">発生日時</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">状態</th>
-                  <th className="text-center px-4 py-3 font-medium text-gray-600">操作</th>
+                <tr>
+                  <th className="text-left px-4 py-3">重要度</th>
+                  <th className="text-left px-4 py-3">設備</th>
+                  <th className="text-left px-4 py-3">内容</th>
+                  <th className="text-left px-4 py-3">発生日時</th>
+                  <th className="text-left px-4 py-3">状態</th>
+                  <th className="text-center px-4 py-3">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {alerts.map((a) => (
-                  <tr key={a.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-gray-50">
+                  <tr key={a.id}>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${severityStyle[a.severity] ?? severityStyle.info}`}>
+                      <span className={`badge ${severityBadge[a.severity] ?? severityBadge.info}`}>
                         {a.severity}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{a.machine_name ?? '---'}</td>
-                    <td className="px-4 py-3 text-gray-600">{a.message}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {formatJST(a.started_at)}
+                    <td className="px-4 py-3 text-[var(--color-text)]">{a.machine_name ?? '---'}</td>
+                    <td className="px-4 py-3 text-[var(--color-text-muted)]">{a.message}</td>
+                    <td className="px-4 py-3 text-xs font-mono">
+                      <span className="text-[var(--color-text-muted)]">{formatJST(a.started_at)}</span>
                       <br />
-                      <span className="text-gray-400">{formatRelative(a.started_at)}</span>
+                      <span className="text-[var(--color-text-dim)]">{formatRelative(a.started_at)}</span>
                     </td>
                     <td className="px-4 py-3">
                       {a.ended_at ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">解消</span>
+                        <span className="badge badge-success">解消</span>
                       ) : a.acknowledged ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">確認済</span>
+                        <span className="badge badge-neutral">確認済</span>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">未確認</span>
+                        <span className="badge badge-danger">未確認</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {!a.acknowledged && !a.ended_at && (
                         <button
                           onClick={() => handleAcknowledge(a.id)}
-                          className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                          className="btn-ghost text-xs px-3 py-1"
                         >
                           確認
                         </button>
@@ -211,19 +207,19 @@ export default function AlertsPage() {
             {!showForm ? (
               <button
                 onClick={() => setShowForm(true)}
-                className="text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="btn-primary text-sm"
               >
                 + ルールを追加
               </button>
             ) : (
-              <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
+              <div className="card-hmi p-4">
                 <form onSubmit={handleAddRule} className="flex flex-wrap gap-3 items-end">
                   <div>
-                    <label className="text-xs text-gray-600 block mb-1">設備</label>
+                    <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">設備</label>
                     <select
                       value={newDeviceId}
                       onChange={(e) => setNewDeviceId(e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1.5"
+                      className="input-hmi text-sm"
                       required
                     >
                       <option value="">選択...</option>
@@ -235,11 +231,11 @@ export default function AlertsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 block mb-1">対象相</label>
+                    <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">対象相</label>
                     <select
                       value={newPhase}
                       onChange={(e) => setNewPhase(e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1.5"
+                      className="input-hmi text-sm"
                     >
                       <option value="any">全相</option>
                       <option value="l1">L1</option>
@@ -248,38 +244,35 @@ export default function AlertsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 block mb-1">条件</label>
+                    <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">条件</label>
                     <select
                       value={newCondition}
                       onChange={(e) => setNewCondition(e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1.5"
+                      className="input-hmi text-sm"
                     >
                       <option value="above">超過</option>
                       <option value="below">未満</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 block mb-1">閾値 (A)</label>
+                    <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">閾値 (A)</label>
                     <input
                       type="number"
                       step="0.1"
                       value={newThreshold}
                       onChange={(e) => setNewThreshold(e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1.5 w-24"
+                      className="input-hmi text-sm w-24 font-[JetBrains_Mono,monospace]"
                       placeholder="10.0"
                       required
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className="text-sm px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
+                  <button type="submit" className="btn-primary text-sm">
                     追加
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="text-sm px-4 py-1.5 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300"
+                    className="btn-ghost text-sm"
                   >
                     キャンセル
                   </button>
@@ -288,38 +281,38 @@ export default function AlertsPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
+          <div className="card-hmi overflow-hidden">
             {rules.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">アラートルールがありません</div>
+              <div className="p-8 text-center text-[var(--color-text-dim)] font-mono text-sm">アラートルールがありません</div>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-hmi">
                 <thead>
-                  <tr className="border-b border-[var(--color-border)] bg-gray-50">
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">設備</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">対象</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">条件</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">有効</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">操作</th>
+                  <tr>
+                    <th className="text-left px-4 py-3">設備</th>
+                    <th className="text-left px-4 py-3">対象</th>
+                    <th className="text-left px-4 py-3">条件</th>
+                    <th className="text-center px-4 py-3">有効</th>
+                    <th className="text-center px-4 py-3">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rules.map((r) => {
                     const dev = r.device as unknown as { machine_name: string | null; enocean_device_id: string } | null
                     return (
-                      <tr key={r.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-gray-50">
-                        <td className="px-4 py-3">
+                      <tr key={r.id}>
+                        <td className="px-4 py-3 text-[var(--color-text)]">
                           {dev?.machine_name ?? dev?.enocean_device_id ?? '---'}
                         </td>
-                        <td className="px-4 py-3 font-mono">{phaseLabel[r.phase] ?? r.phase}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 font-[JetBrains_Mono,monospace] text-[var(--color-primary)]">
+                          {phaseLabel[r.phase] ?? r.phase}
+                        </td>
+                        <td className="px-4 py-3 font-[JetBrains_Mono,monospace] text-[var(--color-text-muted)]">
                           {r.condition === 'above' ? '>' : '<'} {r.threshold_a} A
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button
                             onClick={() => handleToggleRule(r.id, r.is_active)}
-                            className={`text-xs px-2 py-0.5 rounded-full ${
-                              r.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                            }`}
+                            className={`badge cursor-pointer ${r.is_active ? 'badge-success' : 'badge-neutral'}`}
                           >
                             {r.is_active ? 'ON' : 'OFF'}
                           </button>
@@ -327,7 +320,7 @@ export default function AlertsPage() {
                         <td className="px-4 py-3 text-center">
                           <button
                             onClick={() => handleDeleteRule(r.id)}
-                            className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 rounded"
+                            className="btn-danger-ghost"
                           >
                             削除
                           </button>

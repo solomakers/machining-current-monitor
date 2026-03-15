@@ -65,7 +65,6 @@ export default async function DashboardPage() {
     phase_l3_current_a: number | null
   }>()
   for (const t of recentTelemetry ?? []) {
-    // Keep the last entry per device (data is sorted ascending)
     latestByDevice.set(t.device_id, t)
   }
 
@@ -107,7 +106,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-800 mb-6">ダッシュボード</h2>
+      <h2 className="text-lg font-semibold text-[var(--color-text)] mb-6">ダッシュボード</h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatCard
@@ -140,8 +139,8 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-[var(--color-border)] p-5">
-        <h3 className="text-sm font-medium text-gray-700 mb-4">
+      <div className="card-hmi p-5">
+        <h3 className="text-[11px] uppercase tracking-wider text-[var(--color-text-dim)] font-medium mb-4">
           直近24時間 平均電流推移（全設備合算）
         </h3>
         <CurrentTrendChart data={chartData} />

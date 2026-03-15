@@ -68,7 +68,7 @@ export function CsvExportButton({ deviceId, deviceName }: Props) {
       <select
         value={range}
         onChange={(e) => setRange(e.target.value as '24h' | '7d' | '30d')}
-        className="text-xs border border-gray-300 rounded px-2 py-1"
+        className="input-hmi text-xs py-1"
       >
         <option value="24h">24時間</option>
         <option value="7d">7日間</option>
@@ -77,7 +77,7 @@ export function CsvExportButton({ deviceId, deviceName }: Props) {
       <button
         onClick={handleExport}
         disabled={exporting}
-        className="text-xs px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors"
+        className="btn-ghost text-xs"
       >
         {exporting ? 'エクスポート中...' : 'CSV出力'}
       </button>
