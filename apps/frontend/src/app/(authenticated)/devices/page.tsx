@@ -1,5 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatJST, formatCurrent } from '@/lib/format'
+import { calcTotalPowerKw, formatPower } from '@/lib/power'
+import type { PowerSettings } from '@/lib/power'
 import Link from 'next/link'
 
 export const revalidate = 30
@@ -57,10 +59,11 @@ export default async function DevicesPage() {
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-gray-50">
                 <th className="text-left px-4 py-3 font-medium text-gray-600">設備名</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">設備ID</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">種別</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">L1</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">L2</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">L3</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">推定電力</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">最終受信</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-600">状態</th>
               </tr>
@@ -69,6 +72,20 @@ export default async function DevicesPage() {
               {devices.map((device) => {
                 const latest = latestByDevice.get(device.enocean_device_id)
                 const isOnline = latest && latest.observed_at >= tenMinAgo
+
+                const powerSettings: PowerSettings = {
+                  phaseType: (device.phase_type ?? '3phase') as '3phase' | '1phase',
+                  voltageV: Number(device.voltage_v ?? 200),
+                  powerFactor: Number(device.power_factor ?? 0.80),
+                }
+                const power = latest
+                  ? calcTotalPowerKw(
+                      latest.phase_l1_current_a,
+                      latest.phase_l2_current_a,
+                      latest.phase_l3_current_a,
+                      powerSettings,
+                    )
+                  : null
 
                 return (
                   <tr
@@ -83,8 +100,8 @@ export default async function DevicesPage() {
                         {device.machine_name ?? device.enocean_device_id}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">
-                      {device.machine_id ?? '---'}
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {powerSettings.phaseType === '3phase' ? '3φ' : '1φ'} {powerSettings.voltageV}V
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
                       {formatCurrent(latest?.phase_l1_current_a)}
@@ -94,6 +111,9 @@ export default async function DevicesPage() {
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
                       {formatCurrent(latest?.phase_l3_current_a)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-purple-600">
+                      {formatPower(power)}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
                       {latest ? formatJST(latest.observed_at) : '---'}

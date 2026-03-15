@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { StatCard } from '@/components/stat-card'
 import { CurrentTrendChart } from '@/components/current-trend-chart'
 import { formatJST, formatRelative } from '@/lib/format'
+import { calcTotalPowerKw, formatPower } from '@/lib/power'
+import type { PowerSettings } from '@/lib/power'
 
 export const revalidate = 30 // ISR: refresh every 30s
 
@@ -17,11 +19,23 @@ export default async function DashboardPage() {
 
   const activeDeviceIds = new Set(recentDevices?.map((r) => r.device_id) ?? [])
 
-  // Total registered devices
-  const { count: totalDevices } = await supabase
+  // All active devices with power settings
+  const { data: devices } = await supabase
     .from('devices')
-    .select('*', { count: 'exact', head: true })
+    .select('enocean_device_id, machine_name, phase_type, voltage_v, power_factor')
     .eq('is_active', true)
+
+  const totalDevices = devices?.length ?? 0
+
+  // Build power settings map
+  const powerSettingsMap = new Map<string, PowerSettings>()
+  for (const d of devices ?? []) {
+    powerSettingsMap.set(d.enocean_device_id, {
+      phaseType: (d.phase_type ?? '3phase') as '3phase' | '1phase',
+      voltageV: Number(d.voltage_v ?? 200),
+      powerFactor: Number(d.power_factor ?? 0.80),
+    })
+  }
 
   // Latest telemetry timestamp
   const { data: latestEvent } = await supabase
@@ -35,15 +49,37 @@ export default async function DashboardPage() {
   const { data: gateways } = await supabase.from('gateways').select('status')
   const onlineGateways = gateways?.filter((g) => g.status === 'online').length ?? 0
 
-  // 24h hourly average for chart (using raw query via RPC would be better,
-  // but for now we fetch recent data and aggregate client-side)
+  // 24h hourly data
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const { data: recentTelemetry } = await supabase
     .from('telemetry_events')
-    .select('observed_at, phase_l1_current_a, phase_l2_current_a, phase_l3_current_a')
+    .select('observed_at, device_id, phase_l1_current_a, phase_l2_current_a, phase_l3_current_a')
     .gte('observed_at', oneDayAgo)
     .order('observed_at', { ascending: true })
-    .limit(2000)
+    .limit(5000)
+
+  // Calculate total current power (sum of all active devices' latest readings)
+  const latestByDevice = new Map<string, {
+    phase_l1_current_a: number | null
+    phase_l2_current_a: number | null
+    phase_l3_current_a: number | null
+  }>()
+  for (const t of recentTelemetry ?? []) {
+    // Keep the last entry per device (data is sorted ascending)
+    latestByDevice.set(t.device_id, t)
+  }
+
+  let totalPowerKw = 0
+  let powerDeviceCount = 0
+  for (const [deviceId, t] of latestByDevice) {
+    const settings = powerSettingsMap.get(deviceId)
+    if (!settings) continue
+    const pw = calcTotalPowerKw(t.phase_l1_current_a, t.phase_l2_current_a, t.phase_l3_current_a, settings)
+    if (pw != null) {
+      totalPowerKw += pw
+      powerDeviceCount++
+    }
+  }
 
   // Aggregate into hourly buckets
   const hourlyBuckets = new Map<
@@ -73,11 +109,11 @@ export default async function DashboardPage() {
     <div>
       <h2 className="text-xl font-bold text-gray-800 mb-6">ダッシュボード</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatCard
           label="通信中の設備"
           value={activeDeviceIds.size}
-          sub={`/ ${totalDevices ?? 0} 台`}
+          sub={`/ ${totalDevices} 台`}
           color={activeDeviceIds.size > 0 ? 'success' : 'warning'}
         />
         <StatCard
@@ -85,6 +121,12 @@ export default async function DashboardPage() {
           value={onlineGateways}
           sub={`/ ${gateways?.length ?? 0} 台`}
           color={onlineGateways > 0 ? 'success' : 'danger'}
+        />
+        <StatCard
+          label="推定総電力"
+          value={formatPower(powerDeviceCount > 0 ? totalPowerKw : null)}
+          sub={powerDeviceCount > 0 ? `${powerDeviceCount} 台分` : '---'}
+          color="default"
         />
         <StatCard
           label="最新受信"

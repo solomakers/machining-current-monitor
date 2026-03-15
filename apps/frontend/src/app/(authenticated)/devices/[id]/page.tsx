@@ -1,7 +1,9 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatJST, formatCurrent, formatRelative } from '@/lib/format'
+import { calcTotalPowerKw, formatPower } from '@/lib/power'
 import { DeviceDetailChart } from '@/components/device-detail-chart'
 import { CsvExportButton } from '@/components/csv-export-button'
+import { PowerSettingsPanel } from '@/components/power-settings-panel'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
@@ -36,6 +38,13 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
   const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
   const isOnline = latest && latest.observed_at >= tenMinAgo
 
+  // Power settings from device
+  const powerSettings = {
+    phaseType: (device.phase_type ?? '3phase') as '3phase' | '1phase',
+    voltageV: Number(device.voltage_v ?? 200),
+    powerFactor: Number(device.power_factor ?? 0.80),
+  }
+
   // Phase imbalance (max-min / avg * 100)
   let imbalance: string | null = null
   if (latest) {
@@ -51,6 +60,16 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
       }
     }
   }
+
+  // Power calculation
+  const totalPowerKw = latest
+    ? calcTotalPowerKw(
+        latest.phase_l1_current_a,
+        latest.phase_l2_current_a,
+        latest.phase_l3_current_a,
+        powerSettings,
+      )
+    : null
 
   return (
     <div>
@@ -75,10 +94,13 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
         ) : (
           <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">通信断</span>
         )}
+        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+          {powerSettings.phaseType === '3phase' ? '三相' : '単相'} {powerSettings.voltageV}V
+        </span>
       </div>
 
-      {/* Current values */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      {/* Current & Power values */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
           <p className="text-xs text-gray-500 mb-1">L1 電流</p>
           <p className="text-xl font-bold text-blue-600 font-mono">
@@ -98,6 +120,15 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
           </p>
         </div>
         <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
+          <p className="text-xs text-gray-500 mb-1">推定電力</p>
+          <p className="text-xl font-bold text-purple-600 font-mono">
+            {formatPower(totalPowerKw)}
+          </p>
+          <p className="text-[10px] text-gray-400 mt-0.5">
+            cosφ={powerSettings.powerFactor}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-[var(--color-border)] p-4">
           <p className="text-xs text-gray-500 mb-1">相アンバランス</p>
           <p className="text-xl font-bold text-gray-800 font-mono">{imbalance ?? '---'}</p>
         </div>
@@ -110,6 +141,17 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
           <CsvExportButton deviceId={device.enocean_device_id} deviceName={device.machine_name ?? device.enocean_device_id} />
         </div>
         <DeviceDetailChart deviceId={device.enocean_device_id} initialData={chartRaw ?? []} />
+      </div>
+
+      {/* Power settings */}
+      <div className="bg-white rounded-xl border border-[var(--color-border)] p-5 mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">電力設定</h3>
+        <PowerSettingsPanel
+          deviceId={device.id}
+          phaseType={powerSettings.phaseType}
+          voltageV={powerSettings.voltageV}
+          powerFactor={powerSettings.powerFactor}
+        />
       </div>
 
       {/* Device info */}
