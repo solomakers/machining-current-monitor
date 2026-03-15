@@ -9,6 +9,8 @@ Thumbs.db
 *.tsbuildinfo
 .turbo
 coverage/
-spool/
+**/spool/*.jsonl
 .next/
 .supabase/
+supabase/.temp/
+.claude/
