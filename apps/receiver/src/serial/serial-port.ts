@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
-import { createReadStream, existsSync } from 'node:fs'
-import { execSync } from 'node:child_process'
-import type { ReadStream } from 'node:fs'
+import { existsSync } from 'node:fs'
+import { execSync, spawn } from 'node:child_process'
+import type { ChildProcess } from 'node:child_process'
 import type { SerialConfig } from '@mcm/config'
 import type { Logger } from 'pino'
 
@@ -9,11 +9,11 @@ const RECONNECT_INTERVAL_MS = 5000
 
 /**
  * USB 400J 仮想COMポートへの接続を管理する。
- * Linux では stty + fs.createReadStream で直接デバイスファイルを読む。
+ * Linux では stty でシリアル設定後、cat コマンドの子プロセスで読み取る。
  * serialport ライブラリ不要。切断時は自動再接続する。
  */
 export class ManagedSerialPort extends EventEmitter {
-  private stream: ReadStream | null = null
+  private proc: ChildProcess | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private closing = false
 
@@ -43,7 +43,7 @@ export class ManagedSerialPort extends EventEmitter {
     // stty でシリアルポートを設定
     try {
       const sttyCmd = `stty -F ${devicePath} ${this.config.baudRate} raw -echo -echoe -echok -echoctl -echoke cs${this.config.dataBits} -cstopb -parenb -crtscts -ixon -ixoff -hupcl cread clocal`
-      this.logger.info({ port: devicePath, baudRate: this.config.baudRate, cmd: sttyCmd }, 'Configuring serial port with stty')
+      this.logger.info({ port: devicePath, baudRate: this.config.baudRate }, 'Configuring serial port with stty')
       execSync(sttyCmd, { stdio: 'pipe' })
     } catch (err) {
       this.logger.error({ err }, 'Failed to configure serial port with stty')
@@ -51,47 +51,53 @@ export class ManagedSerialPort extends EventEmitter {
       return
     }
 
-    // createReadStream でデバイスファイルを読む
+    // cat コマンドでデバイスファイルを読む
     try {
-      this.stream = createReadStream(devicePath, {
-        highWaterMark: 1024,
+      this.proc = spawn('cat', [devicePath], {
+        stdio: ['ignore', 'pipe', 'pipe'],
       })
 
-      this.stream.on('data', (chunk: string | Buffer) => {
-        this.emit('data', Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+      const proc = this.proc
+
+      proc.stdout?.on('data', (chunk: Buffer) => {
+        this.emit('data', chunk)
       })
 
-      this.stream.on('error', (err: Error) => {
-        this.logger.error({ err: err.message }, 'Serial stream error')
+      proc.stderr?.on('data', (data: Buffer) => {
+        this.logger.warn({ stderr: data.toString().trim() }, 'cat stderr')
+      })
+
+      proc.on('error', (err: Error) => {
+        this.logger.error({ err: err.message }, 'cat process error')
         this.cleanup()
         this.scheduleReconnect()
       })
 
-      this.stream.on('close', () => {
-        this.logger.warn('Serial stream closed')
+      proc.on('exit', (code, signal) => {
+        this.logger.warn({ code, signal }, 'cat process exited')
         this.emit('close')
+        this.cleanup()
         if (!this.closing) {
-          this.cleanup()
           this.scheduleReconnect()
         }
       })
 
-      this.logger.info({ port: devicePath, baudRate: this.config.baudRate }, 'Serial port opened (stty + ReadStream)')
+      this.logger.info({ port: devicePath, baudRate: this.config.baudRate, pid: proc.pid }, 'Serial port opened (stty + cat)')
       this.emit('open')
     } catch (err) {
-      this.logger.error({ err }, 'Failed to open serial stream')
+      this.logger.error({ err }, 'Failed to spawn cat process')
       this.scheduleReconnect()
     }
   }
 
   private cleanup(): void {
-    if (this.stream) {
+    if (this.proc) {
       try {
-        this.stream.destroy()
+        this.proc.kill('SIGTERM')
       } catch {
         // ignore
       }
-      this.stream = null
+      this.proc = null
     }
   }
 
