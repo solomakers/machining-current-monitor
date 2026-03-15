@@ -53,14 +53,18 @@ else
   cd "$INSTALL_DIR"
 fi
 
-# ---------- 4. Install dependencies ----------
+# ---------- 4. Install dependencies & build ----------
 echo ""
-echo "[4/6] Installing dependencies..."
+echo "[4/6] Installing dependencies and building..."
 cd "$INSTALL_DIR"
 npm install
 
-# Install tsx for running TypeScript directly
-npm install -g tsx
+# Build packages first (domain, config), then receiver
+cd "$INSTALL_DIR/packages/domain" && npx tsc
+cd "$INSTALL_DIR/packages/config" && npx tsc
+cd "$INSTALL_DIR/apps/receiver" && npx tsc
+cd "$INSTALL_DIR"
+echo "Build complete."
 
 # ---------- 5. Setup .env ----------
 echo ""

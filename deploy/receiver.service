@@ -9,7 +9,7 @@ Type=simple
 User=pi
 WorkingDirectory=/home/pi/machining-current-monitor/apps/receiver
 EnvironmentFile=/home/pi/machining-current-monitor/apps/receiver/.env
-ExecStart=/home/pi/.nvm/versions/node/v22/bin/node --import tsx src/index.ts
+ExecStart=/home/pi/.nvm/versions/node/v22/bin/node dist/index.js
 Restart=always
 RestartSec=10
 WatchdogSec=300
@@ -23,7 +23,7 @@ SyslogIdentifier=mcm-receiver
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/pi/machining-current-monitor/apps/receiver/spool
+ReadWritePaths=/home/pi/machining-current-monitor/apps/receiver/spool /tmp
 
 # Resource limits
 MemoryMax=256M
