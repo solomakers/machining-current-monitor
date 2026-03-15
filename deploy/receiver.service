@@ -1,0 +1,33 @@
+[Unit]
+Description=EnOcean Current Monitor Receiver
+Documentation=https://github.com/solomakers/machining-current-monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/machining-current-monitor/apps/receiver
+EnvironmentFile=/home/pi/machining-current-monitor/apps/receiver/.env
+ExecStart=/home/pi/.nvm/versions/node/v22/bin/node --import tsx src/index.ts
+Restart=always
+RestartSec=10
+WatchdogSec=300
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mcm-receiver
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/pi/machining-current-monitor/apps/receiver/spool
+
+# Resource limits
+MemoryMax=256M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

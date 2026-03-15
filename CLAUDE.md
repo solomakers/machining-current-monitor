@@ -453,7 +453,36 @@ Claude Code が優先して守ること:
 
 ---
 
-## 16. 未確定事項
+## 16. Raspberry Pi (受信PC) 構成
+
+### ハードウェア
+- Raspberry Pi 400（キーボード一体型）
+- USB 400J（EnOcean受信機、USB-Aポートに接続）
+- CWD-3-1（3相電流センサ）
+- 電源: USB-C アダプタ
+- 通信: WiFi → LTE ルータ経由で HTTPS
+
+### 構成図
+```
+CWD-3-1 → (928MHz無線) → USB 400J → RPi 400 → (WiFi/LTE) → Supabase
+```
+
+### デプロイ関連ファイル
+- `deploy/receiver.service` — systemd ユニットファイル
+- `deploy/99-usb400j.rules` — udev ルール（デバイスパス固定）
+- `scripts/setup-receiver.sh` — ラズパイ初期セットアップスクリプト
+- `docs/raspberry-pi-setup.md` — セットアップ手順書
+
+### 運用要件
+- systemd で自動起動・自動復旧（Restart=always）
+- WatchdogSec=300 でハングアップ検知
+- メモリ上限 256MB
+- ログは journald に出力
+- スプールディレクトリのみ書き込み可（セキュリティ強化）
+
+---
+
+## 17. 未確定事項
 
 実装前に確定すべき項目:
 - CWD-3-1 の実データマッピング詳細

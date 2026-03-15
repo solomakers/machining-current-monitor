@@ -1,0 +1,3 @@
+# EnOcean USB 400J - fixed symlink at /dev/enocean-usb400j
+# VID: 0403 (FTDI), PID: 6001 (FT232R)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="enocean-usb400j", MODE="0666"
