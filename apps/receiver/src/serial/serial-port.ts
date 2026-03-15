@@ -42,7 +42,7 @@ export class ManagedSerialPort extends EventEmitter {
 
     // stty でシリアルポートを設定
     try {
-      const sttyCmd = `stty -F ${devicePath} ${this.config.baudRate} raw -echo -echoe -echok -echoctl -echoke cs${this.config.dataBits} -cstopb -parenb -crtscts -ixon -ixoff -hupcl cread clocal`
+      const sttyCmd = `stty -F ${devicePath} ${this.config.baudRate} raw -echo`
       this.logger.info({ port: devicePath, baudRate: this.config.baudRate }, 'Configuring serial port with stty')
       execSync(sttyCmd, { stdio: 'pipe' })
     } catch (err) {
