@@ -7,6 +7,7 @@ const navItems = [
   { href: '/', label: 'ダッシュボード', icon: '📊' },
   { href: '/devices', label: '設備一覧', icon: '🏭' },
   { href: '/gateways', label: 'ゲートウェイ', icon: '📡' },
+  { href: '/alerts', label: 'アラート', icon: '🔔' },
   { href: '/unknown-devices', label: '未登録デバイス', icon: '❓' },
 ]
 

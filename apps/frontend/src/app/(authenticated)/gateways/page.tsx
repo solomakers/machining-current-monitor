@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatJST, formatRelative } from '@/lib/format'
+import { ConnectionTestButton } from '@/components/connection-test-button'
 
 export const revalidate = 30
 
@@ -41,7 +42,10 @@ export default async function GatewaysPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-800 mb-6">ゲートウェイ状態</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold text-gray-800">ゲートウェイ状態</h2>
+        <ConnectionTestButton />
+      </div>
 
       {!gateways || gateways.length === 0 ? (
         <div className="bg-white rounded-xl border border-[var(--color-border)] p-8 text-center text-gray-500">

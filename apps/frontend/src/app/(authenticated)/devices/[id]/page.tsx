@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatJST, formatCurrent, formatRelative } from '@/lib/format'
 import { DeviceDetailChart } from '@/components/device-detail-chart'
+import { CsvExportButton } from '@/components/csv-export-button'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
@@ -104,7 +105,10 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
 
       {/* Chart */}
       <div className="bg-white rounded-xl border border-[var(--color-border)] p-5 mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-4">電流推移</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-medium text-gray-700">電流推移</h3>
+          <CsvExportButton deviceId={device.enocean_device_id} deviceName={device.machine_name ?? device.enocean_device_id} />
+        </div>
         <DeviceDetailChart deviceId={device.enocean_device_id} initialData={chartRaw ?? []} />
       </div>
 
