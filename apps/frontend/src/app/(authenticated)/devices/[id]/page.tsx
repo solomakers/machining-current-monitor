@@ -27,13 +27,14 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
 
   // 24h data for chart
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { data: chartRaw } = await supabase
+  const { data: chartRawDesc } = await supabase
     .from('telemetry_events')
     .select('observed_at, phase_l1_current_a, phase_l2_current_a, phase_l3_current_a')
     .eq('device_id', device.enocean_device_id)
     .gte('observed_at', oneDayAgo)
-    .order('observed_at', { ascending: true })
+    .order('observed_at', { ascending: false })
     .limit(5000)
+  const chartRaw = chartRawDesc?.reverse() ?? []
 
   const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
   const isOnline = latest && latest.observed_at >= tenMinAgo
@@ -140,7 +141,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
           </h3>
           <CsvExportButton deviceId={device.enocean_device_id} deviceName={device.machine_name ?? device.enocean_device_id} />
         </div>
-        <DeviceDetailChart deviceId={device.enocean_device_id} initialData={chartRaw ?? []} />
+        <DeviceDetailChart deviceId={device.enocean_device_id} initialData={chartRaw ?? []} powerSettings={powerSettings} />
       </div>
 
       {/* Power settings */}

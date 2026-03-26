@@ -37,9 +37,11 @@ export function calcTotalPowerKw(
     const avgCurrent = vals.reduce((a, b) => a + b, 0) / vals.length
     return (SQRT3 * settings.voltageV * avgCurrent * settings.powerFactor) / 1000
   } else {
-    // 単相: V × I × cosφ (L1のみ使用)
-    if (l1 == null) return null
-    return (settings.voltageV * l1 * settings.powerFactor) / 1000
+    // 単相3線式: V × (I_L1 + I_L2)
+    const vals = [l1, l2].filter((v): v is number => v != null)
+    if (vals.length === 0) return null
+    const totalCurrent = vals.reduce((a, b) => a + b, 0)
+    return (settings.voltageV * totalCurrent) / 1000
   }
 }
 

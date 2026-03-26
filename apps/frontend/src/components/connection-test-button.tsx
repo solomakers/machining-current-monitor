@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { runConnectionTest } from './connection-test-action'
 
 type TestStatus = 'idle' | 'testing' | 'success' | 'error'
 
@@ -17,40 +18,7 @@ export function ConnectionTestButton() {
     setStatus('testing')
     setResult(null)
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-
-    // Test 1: Supabase REST API
-    let supabaseResult: TestResult['supabase']
-    try {
-      const start = performance.now()
-      const res = await fetch(`${supabaseUrl}/rest/v1/`, {
-        headers: {
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        },
-      })
-      const latencyMs = Math.round(performance.now() - start)
-      supabaseResult = { ok: res.ok, latencyMs }
-    } catch (err) {
-      supabaseResult = { ok: false, latencyMs: 0, error: (err as Error).message }
-    }
-
-    // Test 2: Ingest Edge Function (health check with empty body)
-    let ingestResult: TestResult['ingest']
-    try {
-      const start = performance.now()
-      const res = await fetch(`${supabaseUrl}/functions/v1/telemetry-ingest`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      })
-      const latencyMs = Math.round(performance.now() - start)
-      // 401 is expected (no auth token), but means the function is reachable
-      ingestResult = { ok: res.status === 401 || res.ok, latencyMs }
-    } catch (err) {
-      ingestResult = { ok: false, latencyMs: 0, error: (err as Error).message }
-    }
-
-    const testResult = { supabase: supabaseResult, ingest: ingestResult }
+    const testResult = await runConnectionTest()
     setResult(testResult)
     setStatus(testResult.supabase.ok && testResult.ingest.ok ? 'success' : 'error')
   }

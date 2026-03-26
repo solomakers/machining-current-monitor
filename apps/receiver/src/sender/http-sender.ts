@@ -16,7 +16,7 @@ export class HttpSender {
   ) {}
 
   async send(request: IngestRequest): Promise<IngestResponse | null> {
-    const url = `${this.config.baseUrl}/telemetry/ingest`
+    const url = `${this.config.baseUrl}/telemetry-ingest`
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {

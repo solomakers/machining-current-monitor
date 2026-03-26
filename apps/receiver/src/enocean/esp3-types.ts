@@ -34,6 +34,15 @@ export interface RadioErp1 {
   repeaterCount: number
 }
 
+/** Radio ERP2 パケットの解析結果 */
+export interface RadioErp2 {
+  telegramType: number
+  senderId: string
+  payload: Buffer
+  rssi: number
+  subTelNum: number
+}
+
 /** CRC8 テーブル (ITU-T) */
 const CRC8_TABLE = new Uint8Array(256)
 ;(() => {

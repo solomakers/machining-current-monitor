@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatJST, formatRelative } from '@/lib/format'
 import { ConnectionTestButton } from '@/components/connection-test-button'
+import { DeviceHealthPanel } from '@/components/device-health-panel'
 
 export const revalidate = 30
 
@@ -96,6 +97,9 @@ export default async function GatewaysPage() {
           })}
         </div>
       )}
+      <div className="mt-6">
+        <DeviceHealthPanel />
+      </div>
     </div>
   )
 }

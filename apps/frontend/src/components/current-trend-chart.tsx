@@ -43,6 +43,10 @@ export function CurrentTrendChart({ data }: { data: DataPoint[] }) {
           dataKey="time"
           tick={{ fontSize: 11, fill: 'var(--color-text-dim)', fontFamily: 'JetBrains Mono, monospace' }}
           stroke="var(--color-border-accent)"
+          interval={Math.max(0, Math.floor(chartData.length / 8) - 1)}
+          angle={-35}
+          textAnchor="end"
+          height={50}
         />
         <YAxis
           tick={{ fontSize: 11, fill: 'var(--color-text-dim)', fontFamily: 'JetBrains Mono, monospace' }}
