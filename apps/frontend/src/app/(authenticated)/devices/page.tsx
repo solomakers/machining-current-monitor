@@ -74,7 +74,7 @@ export default async function DevicesPage() {
                 const isOnline = latest && latest.observed_at >= tenMinAgo
 
                 const powerSettings: PowerSettings = {
-                  phaseType: (device.phase_type ?? '3phase') as '3phase' | '1phase',
+                  phaseType: (device.phase_type ?? '3phase') as '3phase' | '1phase3w',
                   voltageV: Number(device.voltage_v ?? 200),
                   powerFactor: Number(device.power_factor ?? 0.80),
                 }
@@ -98,7 +98,7 @@ export default async function DevicesPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-[var(--color-text-dim)] text-xs font-mono">
-                      {powerSettings.phaseType === '3phase' ? '3φ' : '1φ'} {powerSettings.voltageV}V
+                      {powerSettings.phaseType === '3phase' ? '3φ3W' : '1φ3W'} {powerSettings.voltageV}V
                     </td>
                     <td className="px-4 py-3 text-right font-[JetBrains_Mono,monospace] text-[var(--color-line-l1)]">
                       {formatCurrent(latest?.phase_l1_current_a)}

@@ -68,17 +68,43 @@ export function decodeCwd3(radio: RadioErp1): Cwd3DecodedData | null {
 }
 
 /**
+ * ビットストリームから指定オフセットの12ビット値を抽出する
+ */
+function extract12bits(payload: Buffer, bitOffset: number): number {
+  const byteOffset = Math.floor(bitOffset / 8)
+  const bitShift = bitOffset % 8
+
+  // 3バイトにまたがる可能性があるため、3バイト読んで12ビットを抽出
+  const raw24 =
+    (payload[byteOffset] << 16) |
+    (payload[byteOffset + 1] << 8) |
+    (payload[byteOffset + 2] ?? 0)
+
+  return (raw24 >> (24 - bitShift - 12)) & 0xfff
+}
+
+/**
  * CWD-3-1 ERP2 ペイロードをデコードする
  *
- * 6バイトペイロード (telegramType=7): パックド12ビット形式
- *   4.5バイト (36ビット) = 3チャンネル × 12ビット + 残りはステータス/CRC
- *   ch1: bits[0:11], ch2: bits[12:23], ch3: bits[24:35]
+ * EnOcean GP (Generic Profiles) Complete Data 形式:
+ *   telegramType=5 (GP_CD), 18バイトペイロード
+ *   CWD-3-1 は各チャンネルデータをビットストリームとして連結送信する。
+ *
+ *   ペイロード構造 (144ビット):
+ *     bits  0-15:  ヘッダ (CTタイプ/ステータス情報)
+ *     bits 16-17:  CT1フラグ (2bit)
+ *     bits 18-29:  CT1電流値 (12bit) ← raw × 400 / 4095
+ *     bits 30-55:  CT1メタデータ (26bit)
+ *     bits 56-57:  CT2フラグ (2bit)
+ *     bits 58-69:  CT2電流値 (12bit)
+ *     bits 70-95:  CT2メタデータ (26bit)
+ *     bits 96-97:  CT3フラグ (2bit)
+ *     bits 98-109: CT3電流値 (12bit)
+ *     bits110-135: CT3メタデータ (26bit)
+ *     bits136-143: トレーリング (8bit)
+ *
  *   変換: raw × 400 / 4095 (φ10-24 CT)
  *   0xFFF = 未接続チャンネル
- *
- * 18バイトペイロード (telegramType=5): 5バイト/チャンネル形式
- *   [cmd 2B] + [5B × 3ch] + [trailing 1B]
- *   各チャンネル先頭12ビットが生値
  */
 export function decodeCwd3Erp2(radio: RadioErp2): Cwd3DecodedData | null {
   const payload = radio.payload
@@ -88,11 +114,23 @@ export function decodeCwd3Erp2(radio: RadioErp2): Cwd3DecodedData | null {
   let phaseL2CurrentA: number | null = null
   let phaseL3CurrentA: number | null = null
 
-  if (payload.length === 6) {
-    // telegramType=7: パックド12ビット形式 (6バイト)
-    // byte0[7:0] + byte1[7:4] = ch1 (12bit)
-    // byte1[3:0] + byte2[7:0] = ch2 (12bit)
-    // byte3[7:0] + byte4[7:4] = ch3 (12bit)
+  if (payload.length >= 18 && radio.telegramType === 5) {
+    // GP Complete Data: 18バイトペイロード
+    // 構造: [header 16bit] + [ch block 40bit] × 3 + [trailing 8bit]
+    // 各チャンネルブロック(40bit): [メタ 13bit] [電流値 12bit] [メタ 15bit]
+    const CT_BLOCK_BITS = 40
+    const HEADER_BITS = 16
+    const META_PREFIX_BITS = 13
+
+    const rawCh1 = extract12bits(payload, HEADER_BITS + META_PREFIX_BITS)                          // bit 29
+    const rawCh2 = extract12bits(payload, HEADER_BITS + CT_BLOCK_BITS + META_PREFIX_BITS)           // bit 69
+    const rawCh3 = extract12bits(payload, HEADER_BITS + CT_BLOCK_BITS * 2 + META_PREFIX_BITS)       // bit 109
+
+    phaseL1CurrentA = rawToCurrent(rawCh1)
+    phaseL2CurrentA = rawToCurrent(rawCh2)
+    phaseL3CurrentA = rawToCurrent(rawCh3)
+  } else if (payload.length === 6) {
+    // パックド12ビット形式 (6バイト、フォールバック)
     const rawCh1 = (payload[0] << 4) | (payload[1] >> 4)
     const rawCh2 = ((payload[1] & 0x0f) << 8) | payload[2]
     const rawCh3 = (payload[3] << 4) | (payload[4] >> 4)

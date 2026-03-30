@@ -103,6 +103,14 @@ export class HealthTracker {
       }
     })
 
+    server.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE') {
+        this.logger.warn({ port }, 'Health HTTP port already in use, skipping')
+      } else {
+        this.logger.error({ err: err.message, port }, 'Health HTTP server error')
+      }
+    })
+
     server.listen(port, () => {
       this.logger.info({ port }, 'Health HTTP server started')
     })

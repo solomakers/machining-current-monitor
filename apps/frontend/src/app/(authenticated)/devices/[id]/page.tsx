@@ -41,7 +41,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
 
   // Power settings from device
   const powerSettings = {
-    phaseType: (device.phase_type ?? '3phase') as '3phase' | '1phase',
+    phaseType: (device.phase_type ?? '3phase') as '3phase' | '1phase3w',
     voltageV: Number(device.voltage_v ?? 200),
     powerFactor: Number(device.power_factor ?? 0.80),
   }

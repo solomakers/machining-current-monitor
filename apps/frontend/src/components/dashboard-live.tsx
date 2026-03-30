@@ -32,7 +32,7 @@ export function DashboardLive({ devices, gatewayCount, onlineGateways }: Props) 
   const powerSettingsMap = new Map<string, PowerSettings>()
   for (const d of devices) {
     powerSettingsMap.set(d.enocean_device_id, {
-      phaseType: (d.phase_type ?? '3phase') as '3phase' | '1phase',
+      phaseType: (d.phase_type ?? '3phase') as '3phase' | '1phase3w',
       voltageV: Number(d.voltage_v ?? 200),
       powerFactor: Number(d.power_factor ?? 0.80),
     })

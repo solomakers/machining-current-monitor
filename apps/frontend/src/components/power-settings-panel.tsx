@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 
 interface Props {
   deviceId: string
-  phaseType: '3phase' | '1phase'
+  phaseType: '3phase' | '1phase3w'
   voltageV: number
   powerFactor: number
 }
@@ -65,25 +65,23 @@ export function PowerSettingsPanel({ deviceId, phaseType, voltageV, powerFactor 
         <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">交流種別</label>
         <select
           value={phase}
-          onChange={(e) => setPhase(e.target.value as '3phase' | '1phase')}
+          onChange={(e) => setPhase(e.target.value as '3phase' | '1phase3w')}
           className="input-hmi text-sm"
         >
-          <option value="3phase">三相交流</option>
-          <option value="1phase">単相交流</option>
+          <option value="3phase">三相3線式</option>
+          <option value="1phase3w">単相3線式</option>
         </select>
       </div>
       <div>
-        <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">線間電圧 (V)</label>
-        <select
+        <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">電圧 (V)</label>
+        <input
+          type="number"
+          step="1"
+          min="1"
           value={voltage}
           onChange={(e) => setVoltage(e.target.value)}
-          className="input-hmi text-sm"
-        >
-          <option value="100">100V</option>
-          <option value="200">200V</option>
-          <option value="400">400V</option>
-          <option value="440">440V</option>
-        </select>
+          className="input-hmi text-sm w-20 font-[JetBrains_Mono,monospace]"
+        />
       </div>
       <div>
         <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">力率 (cosφ)</label>
@@ -110,8 +108,8 @@ export function PowerSettingsPanel({ deviceId, phaseType, voltageV, powerFactor 
       </div>
       <div className="w-full text-xs text-[var(--color-text-dim)] mt-1 font-[JetBrains_Mono,monospace]">
         {phase === '3phase'
-          ? `P = √3 × ${voltage}V × I_avg × ${pf}`
-          : `P = ${voltage}V × I × ${pf}`
+          ? `P = ${voltage}V × avg(L1,L2,L3) × ${pf}`
+          : `P = ${voltage}V × (L1+L2) × ${pf}`
         }
       </div>
     </div>
