@@ -9,10 +9,11 @@ Type=simple
 User=pi
 WorkingDirectory=/home/pi/machining-current-monitor/apps/receiver
 EnvironmentFile=/home/pi/machining-current-monitor/apps/receiver/.env
-ExecStart=/home/pi/.nvm/versions/node/v22/bin/node dist/index.js
-Restart=always
-RestartSec=10
-WatchdogSec=300
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=30
+KillMode=mixed
+TimeoutStopSec=15
 
 # Logging
 StandardOutput=journal
