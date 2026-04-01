@@ -114,7 +114,7 @@ export function decodeCwd3Erp2(radio: RadioErp2): Cwd3DecodedData | null {
   let phaseL2CurrentA: number | null = null
   let phaseL3CurrentA: number | null = null
 
-  if (payload.length >= 18 && radio.telegramType === 5) {
+  if (payload.length === 18 && radio.telegramType === 5) {
     // GP Complete Data: 18バイトペイロード
     // 構造: [header 16bit] + [ch block 40bit] × 3 + [trailing 8bit]
     // 各チャンネルブロック(40bit): [メタ 13bit] [電流値 12bit] [メタ 15bit]
