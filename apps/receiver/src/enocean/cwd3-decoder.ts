@@ -24,13 +24,18 @@ export interface Cwd3DecodedData {
   repeaterCount: number
 }
 
+/** φ10 CT の定格電流上限 (A) — これを超えたら異常値として破棄 */
+const CT_RATED_MAX_A = 50
+
 /**
  * 12ビット生値を電流値 (A) に変換する
  * φ10-24 CT: raw × 400 / 4095
  */
 function rawToCurrent(raw12bit: number): number | null {
   if (raw12bit === NO_DATA_VALUE || raw12bit < 0) return null
-  return Math.round((raw12bit * CT_RANGE_PHI10_24 / RAW_MAX) * 100) / 100
+  const current = Math.round((raw12bit * CT_RANGE_PHI10_24 / RAW_MAX) * 100) / 100
+  if (current > CT_RATED_MAX_A) return null
+  return current
 }
 
 /**
