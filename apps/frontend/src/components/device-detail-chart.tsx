@@ -43,6 +43,7 @@ export function DeviceDetailChart({ deviceId, initialData, powerSettings }: Prop
   const fetchData = useCallback(async (r: Range) => {
     const hours = r === '1h' ? 1 : r === '24h' ? 24 : 168
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+    const limit = r === '7d' ? 20000 : 5000
 
     const supabase = createSupabaseBrowserClient()
     // descending + limit で最新側を取得し、reverseで時系列順に戻す
@@ -52,9 +53,19 @@ export function DeviceDetailChart({ deviceId, initialData, powerSettings }: Prop
       .eq('device_id', deviceId)
       .gte('observed_at', since)
       .order('observed_at', { ascending: false })
-      .limit(5000)
+      .limit(limit)
 
-    if (result) setData(result.reverse())
+    if (!result) return
+
+    const reversed = result.reverse()
+
+    // 7日間はデータを間引いて描画負荷を軽減（約5分間隔に）
+    if (r === '7d' && reversed.length > 2000) {
+      const step = Math.ceil(reversed.length / 2000)
+      setData(reversed.filter((_, i) => i % step === 0))
+    } else {
+      setData(reversed)
+    }
   }, [deviceId])
 
   // 初回マウント時に最新データを取得
