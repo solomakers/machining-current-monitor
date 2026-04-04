@@ -125,10 +125,49 @@ async function main(): Promise<void> {
     health.updateSpoolDepth(spool.depth())
   }, RESEND_INTERVAL_MS)
 
-  // ヘルスチェック定期出力
-  setInterval(() => {
+  // ヘルスチェック定期出力 + heartbeat送信
+  const sendHeartbeat = async () => {
+    const status = health.getStatus()
     health.logStatus()
-  }, apiConfig.heartbeatIntervalSec * 1000)
+
+    const heartbeat = {
+      gatewayId: apiConfig.gatewayId,
+      sentAt: new Date().toISOString(),
+      status: status.usbDeviceFound ? 'online' as const : 'degraded' as const,
+      spoolDepth: status.spoolDepth,
+      serialPort: serialConfig.port,
+      appVersion: '1.0.0',
+      uptimeSec: Math.floor(status.processUptime),
+      lastReceivedAt: status.lastReceivedAt,
+      lastSentSuccessAt: status.lastSentSuccessAt,
+      meta: {
+        rssi: status.lastRssi,
+        recentReceivedCount: status.recentReceivedCount,
+        recentSendFailCount: status.recentSendFailCount,
+        recentCrcErrorCount: status.recentCrcErrorCount,
+      },
+    }
+
+    try {
+      const res = await fetch(`${apiConfig.baseUrl}/gateway-heartbeat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiConfig.token}`,
+        },
+        body: JSON.stringify(heartbeat),
+      })
+      if (!res.ok) {
+        logger.warn({ status: res.status }, 'Heartbeat send failed')
+      }
+    } catch {
+      logger.debug('Heartbeat send error (network)')
+    }
+  }
+
+  setInterval(sendHeartbeat, apiConfig.heartbeatIntervalSec * 1000)
+  // 初回heartbeatを10秒後に送信
+  setTimeout(sendHeartbeat, 10_000)
 
   // ヘルスチェックHTTPサーバー起動
   health.startHttpServer(3001)

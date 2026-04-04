@@ -45,6 +45,36 @@ export default async function DevicesPage() {
     }
   }
 
+  // 最新のheartbeat取得
+  const { data: heartbeats } = await supabase
+    .from('gateway_heartbeats')
+    .select('gateway_id, sent_at')
+    .order('sent_at', { ascending: false })
+    .limit(10)
+  const latestHbByGw = new Map<string, string>()
+  for (const hb of heartbeats ?? []) {
+    if (!latestHbByGw.has(hb.gateway_id)) {
+      latestHbByGw.set(hb.gateway_id, hb.sent_at)
+    }
+  }
+
+  type ConnectionStatus = 'online' | 'sensor-down' | 'wifi-down' | 'no-data'
+  const getStatus = (latest: { observed_at: string } | undefined): ConnectionStatus => {
+    if (!latest) return 'no-data'
+    if (latest.observed_at >= tenMinAgo) return 'online'
+    // GWのheartbeatが最近あるか
+    const gwHb = latestHbByGw.get('gw-001') // TODO: デバイスごとのGW紐付け
+    if (gwHb && gwHb >= tenMinAgo) return 'sensor-down'
+    return 'wifi-down'
+  }
+
+  const statusDot = {
+    'online':      { color: 'bg-[var(--color-success)] pulse-live', title: '通信中' },
+    'sensor-down': { color: 'bg-[var(--color-warning)]', title: 'センサ断' },
+    'wifi-down':   { color: 'bg-[var(--color-danger)] pulse-danger', title: 'WiFi断' },
+    'no-data':     { color: 'bg-[var(--color-text-dim)]', title: 'データ未受信' },
+  } as const
+
   return (
     <div>
       <h2 className="text-lg font-semibold text-[var(--color-text)] mb-6">設備一覧</h2>
@@ -116,13 +146,11 @@ export default async function DevicesPage() {
                       {latest ? formatJST(latest.observed_at) : '---'}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {latest == null ? (
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-[var(--color-text-dim)]" title="データ未受信" />
-                      ) : isOnline ? (
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-[var(--color-success)] pulse-live" title="通信中" />
-                      ) : (
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-[var(--color-danger)] pulse-danger" title="通信断" />
-                      )}
+                      {(() => {
+                        const s = getStatus(latest)
+                        const cfg = statusDot[s]
+                        return <span className={`inline-block w-2.5 h-2.5 rounded-full ${cfg.color}`} title={cfg.title} />
+                      })()}
                     </td>
                   </tr>
                 )

@@ -39,6 +39,39 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
   const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
   const isOnline = latest && latest.observed_at >= tenMinAgo
 
+  // ゲートウェイのheartbeat情報を取得
+  const { data: latestHeartbeat } = await supabase
+    .from('gateway_heartbeats')
+    .select('*')
+    .eq('gateway_id', latest?.gateway_id ?? 'gw-001')
+    .order('sent_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const gwHeartbeatRecent = latestHeartbeat && latestHeartbeat.sent_at >= tenMinAgo
+
+  // 4状態の判定
+  type ConnectionStatus = 'online' | 'sensor-down' | 'wifi-down' | 'no-data'
+  let connectionStatus: ConnectionStatus = 'no-data'
+  if (latest == null) {
+    connectionStatus = 'no-data'
+  } else if (isOnline) {
+    connectionStatus = 'online'
+  } else if (gwHeartbeatRecent) {
+    // GWは生きているがデータが来ない → センサ断
+    connectionStatus = 'sensor-down'
+  } else {
+    // GWからもheartbeatが来ない → WiFi断
+    connectionStatus = 'wifi-down'
+  }
+
+  const statusConfig = {
+    'online':      { label: '通信中',        badge: 'badge-success' },
+    'sensor-down': { label: 'センサ断',      badge: 'badge-warning' },
+    'wifi-down':   { label: 'WiFi断',        badge: 'badge-danger' },
+    'no-data':     { label: 'データ未受信',  badge: 'badge-neutral' },
+  } as const
+
   // Power settings from device
   const powerSettings = {
     phaseType: (device.phase_type ?? '3phase') as '3phase' | '1phase3w',
@@ -84,13 +117,9 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
         <h2 className="text-lg font-semibold text-[var(--color-text)]">
           {device.machine_name ?? device.enocean_device_id}
         </h2>
-        {latest == null ? (
-          <span className="badge badge-neutral">データ未受信</span>
-        ) : isOnline ? (
-          <span className="badge badge-success">通信中</span>
-        ) : (
-          <span className="badge badge-danger">通信断</span>
-        )}
+        <span className={`badge ${statusConfig[connectionStatus].badge}`}>
+          {statusConfig[connectionStatus].label}
+        </span>
         <span className="badge badge-neutral font-mono">
           {powerSettings.phaseType === '3phase' ? '三相' : '単相'} {powerSettings.voltageV}V
         </span>
