@@ -43,24 +43,35 @@ export function DeviceDetailChart({ deviceId, initialData, powerSettings }: Prop
   const fetchData = useCallback(async (r: Range) => {
     const hours = r === '1h' ? 1 : r === '24h' ? 24 : 168
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
-    const limit = r === '7d' ? 20000 : 5000
+    const pageSize = 1000
 
     const supabase = createSupabaseBrowserClient()
-    // descending + limit で最新側を取得し、reverseで時系列順に戻す
-    const { data: result } = await supabase
-      .from('telemetry_events')
-      .select('observed_at, phase_l1_current_a, phase_l2_current_a, phase_l3_current_a')
-      .eq('device_id', deviceId)
-      .gte('observed_at', since)
-      .order('observed_at', { ascending: false })
-      .limit(limit)
 
-    if (!result) return
+    // ページネーションで全件取得
+    const allRows: TelemetryRow[] = []
+    let from = 0
+    const maxRows = r === '7d' ? 30000 : 5000
+    while (from < maxRows) {
+      const { data: page } = await supabase
+        .from('telemetry_events')
+        .select('observed_at, phase_l1_current_a, phase_l2_current_a, phase_l3_current_a')
+        .eq('device_id', deviceId)
+        .gte('observed_at', since)
+        .order('observed_at', { ascending: false })
+        .range(from, from + pageSize - 1)
 
-    const reversed = result.reverse()
+      if (!page || page.length === 0) break
+      allRows.push(...page)
+      if (page.length < pageSize) break
+      from += pageSize
+    }
 
-    // 7日間はデータを間引いて描画負荷を軽減（約5分間隔に）
-    if (r === '7d' && reversed.length > 2000) {
+    if (allRows.length === 0) return
+
+    const reversed = allRows.reverse()
+
+    // 7日間はデータを間引いて描画負荷を軽減（約2000点に）
+    if (reversed.length > 2000) {
       const step = Math.ceil(reversed.length / 2000)
       setData(reversed.filter((_, i) => i % step === 0))
     } else {
