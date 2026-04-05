@@ -84,7 +84,7 @@ export function PowerSettingsPanel({ deviceId, phaseType, voltageV, powerFactor 
         />
       </div>
       <div>
-        <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-dim)] block mb-1.5">力率 (cosφ)</label>
+        <label className={`text-[10px] uppercase tracking-wider block mb-1.5 ${phase === '1phase3w' ? 'text-[var(--color-text-dim)] opacity-40' : 'text-[var(--color-text-dim)]'}`}>力率 (cosφ)</label>
         <input
           type="number"
           step="0.01"
@@ -92,7 +92,8 @@ export function PowerSettingsPanel({ deviceId, phaseType, voltageV, powerFactor 
           max="1.00"
           value={pf}
           onChange={(e) => setPf(e.target.value)}
-          className="input-hmi text-sm w-20 font-[JetBrains_Mono,monospace]"
+          disabled={phase === '1phase3w'}
+          className={`input-hmi text-sm w-20 font-[JetBrains_Mono,monospace] ${phase === '1phase3w' ? 'opacity-40 cursor-not-allowed' : ''}`}
         />
       </div>
       <div className="flex items-center gap-3">
