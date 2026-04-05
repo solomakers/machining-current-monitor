@@ -109,7 +109,7 @@ export function PowerSettingsPanel({ deviceId, phaseType, voltageV, powerFactor 
       <div className="w-full text-xs text-[var(--color-text-dim)] mt-1 font-[JetBrains_Mono,monospace]">
         {phase === '3phase'
           ? `P = √3 × ${voltage}V × avg(L1,L2,L3) × ${pf}`
-          : `P = ${voltage}V × (L1+L2) × ${pf}`
+          : `P = ${voltage}V × (L1+L2)`
         }
       </div>
     </div>
