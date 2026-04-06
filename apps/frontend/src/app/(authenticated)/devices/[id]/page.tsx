@@ -1,6 +1,8 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatJST, formatCurrent, formatRelative } from '@/lib/format'
 import { calcTotalPowerKw, formatPower } from '@/lib/power'
+import { isCurrentIdle, STATUS_CONFIG } from '@/lib/connection-status'
+import type { ConnectionStatus } from '@/lib/connection-status'
 import { DeviceDetailChart } from '@/components/device-detail-chart'
 import { CsvExportButton } from '@/components/csv-export-button'
 import { PowerSettingsPanel } from '@/components/power-settings-panel'
@@ -50,27 +52,19 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
 
   const gwHeartbeatRecent = latestHeartbeat && latestHeartbeat.sent_at >= tenMinAgo
 
-  // 4状態の判定
-  type ConnectionStatus = 'online' | 'sensor-down' | 'wifi-down' | 'no-data'
+  // 5状態の判定
   let connectionStatus: ConnectionStatus = 'no-data'
   if (latest == null) {
     connectionStatus = 'no-data'
   } else if (isOnline) {
-    connectionStatus = 'online'
+    connectionStatus = isCurrentIdle(latest.phase_l1_current_a, latest.phase_l2_current_a, latest.phase_l3_current_a)
+      ? 'idle'
+      : 'online'
   } else if (gwHeartbeatRecent) {
-    // GWは生きているがデータが来ない → センサ断
     connectionStatus = 'sensor-down'
   } else {
-    // GWからもheartbeatが来ない → WiFi断
     connectionStatus = 'wifi-down'
   }
-
-  const statusConfig = {
-    'online':      { label: '通信中',        badge: 'badge-success' },
-    'sensor-down': { label: 'センサ断',      badge: 'badge-warning' },
-    'wifi-down':   { label: 'WiFi断',        badge: 'badge-danger' },
-    'no-data':     { label: 'データ未受信',  badge: 'badge-neutral' },
-  } as const
 
   // Power settings from device
   const powerSettings = {
@@ -117,8 +111,8 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
         <h2 className="text-lg font-semibold text-[var(--color-text)]">
           {device.machine_name ?? device.enocean_device_id}
         </h2>
-        <span className={`badge ${statusConfig[connectionStatus].badge}`}>
-          {statusConfig[connectionStatus].label}
+        <span className={`badge ${STATUS_CONFIG[connectionStatus].badge}`}>
+          {STATUS_CONFIG[connectionStatus].label}
         </span>
         <span className="badge badge-neutral font-mono">
           {powerSettings.phaseType === '3phase' ? '三相' : '単相'} {powerSettings.voltageV}V
@@ -222,6 +216,41 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
           </div>
         </dl>
       </div>
+
+      {/* 通信診断パネル（障害時のみ表示） */}
+      {(connectionStatus === 'sensor-down' || connectionStatus === 'wifi-down') && (
+        <div className="card-hmi p-5 mt-4 border-l-2 border-[var(--color-warning)]">
+          <h3 className="text-[11px] uppercase tracking-wider text-[var(--color-text-dim)] font-medium mb-3">
+            通信診断
+          </h3>
+          <dl className="text-sm space-y-2">
+            <div className="flex justify-between py-1">
+              <dt className="text-[var(--color-text-muted)]">ゲートウェイ</dt>
+              <dd className="font-[JetBrains_Mono,monospace] text-xs text-[var(--color-text)]">{latest?.gateway_id ?? '---'}</dd>
+            </div>
+            <div className="flex justify-between py-1">
+              <dt className="text-[var(--color-text-muted)]">GW最終通信</dt>
+              <dd className="font-mono text-xs text-[var(--color-text)]">
+                {latestHeartbeat ? `${formatJST(latestHeartbeat.sent_at)} (${formatRelative(latestHeartbeat.sent_at)})` : '---'}
+              </dd>
+            </div>
+            <div className="flex justify-between py-1">
+              <dt className="text-[var(--color-text-muted)]">GW状態</dt>
+              <dd className="text-[var(--color-text)]">{latestHeartbeat?.status ?? '---'}</dd>
+            </div>
+            <div className="flex justify-between py-1">
+              <dt className="text-[var(--color-text-muted)]">スプール件数</dt>
+              <dd className="font-mono text-xs text-[var(--color-text)]">{latestHeartbeat?.spool_depth ?? '---'}</dd>
+            </div>
+            <div className="flex justify-between py-1">
+              <dt className="text-[var(--color-text-muted)]">GW最終受信</dt>
+              <dd className="font-mono text-xs text-[var(--color-text)]">
+                {latestHeartbeat?.last_received_at ? `${formatJST(latestHeartbeat.last_received_at)} (${formatRelative(latestHeartbeat.last_received_at)})` : '---'}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
     </div>
   )
 }

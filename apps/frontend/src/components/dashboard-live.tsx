@@ -7,6 +7,7 @@ import { CurrentTrendChart } from '@/components/current-trend-chart'
 import { formatJST, formatRelative } from '@/lib/format'
 import { calcTotalPowerKw, formatPower } from '@/lib/power'
 import type { PowerSettings } from '@/lib/power'
+import { isCurrentIdle } from '@/lib/connection-status'
 
 interface Props {
   devices: {
@@ -24,7 +25,8 @@ const REFRESH_MS = 30_000
 export function DashboardLive({ devices, gatewayCount, onlineGateways }: Props) {
   const [latestTime, setLatestTime] = useState<string | null>(null)
   const [dataCount, setDataCount] = useState(0)
-  const [activeCount, setActiveCount] = useState(0)
+  const [runningCount, setRunningCount] = useState(0)
+  const [idleCount, setIdleCount] = useState(0)
   const [totalPower, setTotalPower] = useState<number | null>(null)
   const [powerDevices, setPowerDevices] = useState(0)
   const [chartData, setChartData] = useState<{ observed_at: string; avg_l1: number | null; avg_l2: number | null; avg_l3: number | null }[]>([])
@@ -69,17 +71,26 @@ export function DashboardLive({ devices, gatewayCount, onlineGateways }: Props) 
       setLatestTime(telemetry[telemetry.length - 1].observed_at)
     }
 
-    // Active devices (last 10 min)
-    const activeIds = new Set(
-      telemetry.filter((t) => t.observed_at >= tenMinAgo).map((t) => t.device_id),
-    )
-    setActiveCount(activeIds.size)
-
-    // Power calculation
+    // Power calculation & status classification
     const latestByDevice = new Map<string, typeof telemetry[0]>()
     for (const t of telemetry) {
       latestByDevice.set(t.device_id, t)
     }
+
+    // Active devices (last 10 min) split into running / idle
+    let running = 0
+    let idle = 0
+    for (const [, t] of latestByDevice) {
+      if (t.observed_at >= tenMinAgo) {
+        if (isCurrentIdle(t.phase_l1_current_a, t.phase_l2_current_a, t.phase_l3_current_a)) {
+          idle++
+        } else {
+          running++
+        }
+      }
+    }
+    setRunningCount(running)
+    setIdleCount(idle)
 
     let pw = 0
     let pwCount = 0
@@ -106,10 +117,10 @@ export function DashboardLive({ devices, gatewayCount, onlineGateways }: Props) 
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatCard
-          label="通信中の設備"
-          value={activeCount}
-          sub={`/ ${devices.length} 台`}
-          color={activeCount > 0 ? 'success' : 'warning'}
+          label="稼働中"
+          value={runningCount}
+          sub={`停止 ${idleCount} / 全 ${devices.length} 台`}
+          color={runningCount > 0 ? 'success' : 'default'}
         />
         <StatCard
           label="オンラインGW"
