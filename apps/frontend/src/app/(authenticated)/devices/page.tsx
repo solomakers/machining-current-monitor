@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatJST, formatCurrent } from '@/lib/format'
 import { calcTotalPowerKw, formatPower } from '@/lib/power'
 import type { PowerSettings } from '@/lib/power'
-import { isCurrentIdle, STATUS_CONFIG } from '@/lib/connection-status'
+import { isCurrentIdle, isBelowSensorThreshold, STATUS_CONFIG } from '@/lib/connection-status'
 import type { ConnectionStatus } from '@/lib/connection-status'
 import Link from 'next/link'
 
@@ -69,7 +69,12 @@ export default async function DevicesPage() {
         : 'online'
     }
     const gwHb = latestHbByGw.get(latest.gateway_id)
-    if (gwHb && gwHb >= tenMinAgo) return 'sensor-down'
+    if (gwHb && gwHb >= tenMinAgo) {
+      // GWは生きているがデータが来ない → 最後の電流値がセンサ下限未満なら停止中
+      return isBelowSensorThreshold(latest.phase_l1_current_a, latest.phase_l2_current_a, latest.phase_l3_current_a)
+        ? 'idle'
+        : 'sensor-down'
+    }
     return 'wifi-down'
   }
 

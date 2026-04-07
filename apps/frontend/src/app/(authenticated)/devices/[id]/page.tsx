@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatJST, formatCurrent, formatRelative } from '@/lib/format'
 import { calcTotalPowerKw, formatPower } from '@/lib/power'
-import { isCurrentIdle, STATUS_CONFIG } from '@/lib/connection-status'
+import { isCurrentIdle, isBelowSensorThreshold, STATUS_CONFIG } from '@/lib/connection-status'
 import type { ConnectionStatus } from '@/lib/connection-status'
 import { DeviceDetailChart } from '@/components/device-detail-chart'
 import { CsvExportButton } from '@/components/csv-export-button'
@@ -61,7 +61,10 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
       ? 'idle'
       : 'online'
   } else if (gwHeartbeatRecent) {
-    connectionStatus = 'sensor-down'
+    // GWは生きているがデータが来ない → 最後の電流値がセンサ下限未満なら停止中
+    connectionStatus = isBelowSensorThreshold(latest.phase_l1_current_a, latest.phase_l2_current_a, latest.phase_l3_current_a)
+      ? 'idle'
+      : 'sensor-down'
   } else {
     connectionStatus = 'wifi-down'
   }

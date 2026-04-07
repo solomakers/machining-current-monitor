@@ -1,6 +1,9 @@
 /** 全3相がこの値未満なら設備停止（idle）と判定 */
 export const IDLE_CURRENT_THRESHOLD_A = 0.5
 
+/** CWD-3-1 センサの検出下限。この値未満の電流はセンサが検出できずデータ送信されない */
+export const SENSOR_MIN_DETECTION_A = 2.0
+
 /** データ鮮度の判定ウィンドウ（10分） */
 export const STALE_THRESHOLD_MS = 10 * 60 * 1000
 
@@ -19,6 +22,17 @@ export function isCurrentIdle(
 ): boolean {
   return [l1, l2, l3].every(
     (v) => v == null || Math.abs(Number(v)) < IDLE_CURRENT_THRESHOLD_A,
+  )
+}
+
+/** 最後の電流値がセンサ検出下限付近かどうか（停止によりデータが途切れた可能性） */
+export function isBelowSensorThreshold(
+  l1: number | null,
+  l2: number | null,
+  l3: number | null,
+): boolean {
+  return [l1, l2, l3].every(
+    (v) => v == null || Math.abs(Number(v)) < SENSOR_MIN_DETECTION_A,
   )
 }
 
